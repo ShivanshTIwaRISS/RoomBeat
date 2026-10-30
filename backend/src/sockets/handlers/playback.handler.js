@@ -148,5 +148,49 @@ const registerPlaybackHandlers = (io, socket) => {
             senderName: session.displayName,
         });
     });
+    /**
+     * Live Audio Streaming (System / Tab / Mic capture broadcast)
+     */
+    socket.on('stream:audio:start', (data) => {
+        if (!session || !data.roomId)
+            return;
+        socket.to(data.roomId).emit('stream:audio:start', {
+            senderId: session.id,
+            senderName: session.displayName,
+            sourceType: data.sourceType || 'system',
+            title: data.title || 'Live Broadcast',
+            sampleRate: data.sampleRate || 44100,
+        });
+    });
+    socket.on('stream:audio:chunk', (data) => {
+        if (!session || !data.roomId)
+            return;
+        socket.to(data.roomId).emit('stream:audio:chunk', {
+            chunk: data.chunk,
+            sampleRate: data.sampleRate || 44100,
+            timestamp: data.timestamp,
+        });
+    });
+    socket.on('stream:audio:stop', (data) => {
+        if (!session || !data.roomId)
+            return;
+        socket.to(data.roomId).emit('stream:audio:stop', {
+            senderId: session.id,
+        });
+    });
+    /**
+     * Synchronized YouTube Video Playback
+     */
+    socket.on('playback:youtube', (data) => {
+        if (!session || !data.roomId)
+            return;
+        io.to(data.roomId).emit('playback:youtube', {
+            videoId: data.videoId,
+            title: data.title || 'YouTube Audio',
+            startAtServerEpochMs: data.startAtServerEpochMs || (Date.now() + 2500),
+            positionSec: data.positionSec || 0,
+            senderName: session.displayName,
+        });
+    });
 };
 exports.registerPlaybackHandlers = registerPlaybackHandlers;

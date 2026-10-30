@@ -256,6 +256,9 @@
         <div id="track-dur-badge" class="track-duration-badge">0:00</div>
       </div>
 
+      <!-- Synced YouTube Video Box (shown when YouTube is playing) -->
+      <div id="yt-player-box" style="display:none;margin: 8px auto 14px;border-radius:16px;overflow:hidden;background:#000;max-width:380px;width:100%;box-shadow:0 8px 24px rgba(0,0,0,0.5);"></div>
+
       <div class="now-playing-label">Now Playing</div>
       <div id="now-playing-title" class="track-title">Synchronized Beat</div>
       <div id="now-playing-artist" class="track-artist">RoomBeat Audio Engine</div>
@@ -323,16 +326,25 @@
             </label>
           </div>
 
-          <!-- Option 3: system audio (host only, desktop) -->
+          <!-- Option 3: Live Broadcast (Desktop Tab / Phone Mic / Aux) -->
           <div id="sys-audio-section" style="display:flex;justify-content:space-between;align-items:center;background:var(--surface-light);padding:10px;border-radius:10px;">
             <div>
-              <div style="font-size:12px;font-weight:700;">🖥️ Capture Tab / System Audio</div>
-              <div style="font-size:11px;color:var(--text-sec);">Desktop Chrome/Edge only — plays locally on this device</div>
+              <div style="font-size:12px;font-weight:700;">📡 Live Audio Broadcast (YouTube / Tab / Mic)</div>
+              <div style="font-size:11px;color:var(--text-sec);">Broadcast live sound to all connected speakers</div>
             </div>
             <div style="display:flex;gap:6px;align-items:center;">
               <span id="sys-audio-live" class="live-badge" style="display:none;">● LIVE</span>
-              <button id="sys-audio-btn" class="btn btn-secondary btn-sm" style="width:auto;padding:7px 12px;" onclick="toggleSystemAudio()">Capture</button>
+              <button id="sys-audio-btn" class="btn btn-secondary btn-sm" style="width:auto;padding:7px 12px;" onclick="toggleSystemAudio()">Broadcast</button>
             </div>
+          </div>
+
+          <!-- Option 4: YouTube Track Sync -->
+          <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface-light);padding:10px;border-radius:10px;">
+            <div>
+              <div style="font-size:12px;font-weight:700;">▶ Sync YouTube Track</div>
+              <div style="font-size:11px;color:var(--text-sec);">Enter YouTube link to play together in sync on all phones</div>
+            </div>
+            <button class="btn btn-secondary btn-sm" style="width:auto;padding:7px 12px;" onclick="openYouTubeModal()">Sync Link</button>
           </div>
 
         </div>
@@ -371,6 +383,19 @@
     </div>
   </div>
 
+  <!-- YouTube Sync Modal -->
+  <div id="yt-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:24px;max-width:340px;width:90%;text-align:center;">
+      <div style="font-size:20px;font-weight:800;margin-bottom:8px;">▶ Sync YouTube Track</div>
+      <p style="font-size:12px;color:var(--text-sec);margin-bottom:16px;">Paste any YouTube URL or Video ID. It will play in sync across all phones in the room.</p>
+      <input id="input-yt-url" class="input" type="text" placeholder="https://www.youtube.com/watch?v=..." style="font-size:13px;margin-bottom:14px;text-align:center;">
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="closeYouTubeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="handleYouTubeSync()">Play Together</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast stack -->
   <div id="toast-stack"></div>
 
@@ -387,7 +412,7 @@
     let gainNode = null;
     let analyserNode = null;
     let roomVolume = 0.8;
-    let userCalibrationMs = parseInt(localStorage.getItem('roombeat_calib') || '0', 10);
+    let userCalibrationMs = Number(localStorage.getItem('roombeat_calib')) || 0;
     let audioBuffer = null;
     let audioSource = null;
     let isPlaying = false;
@@ -402,6 +427,8 @@
     let pendingScheduledPlay = null;
     let systemAudioStream = null;
     let systemAudioSource = null;
+    let streamAudioProcessor = null;
+    let streamPlayTime = 0;
     let _loadAudioPromise = null;
     let _loadedAudioUrl = null;
 
@@ -725,6 +752,58 @@
         log('Server error: ' + data.message, false, 'room-logs');
         toast('⚠ ' + data.message, 'error');
       });
+
+      // ---- LIVE AUDIO STREAM (BROADCAST FROM HOST) ----
+      socket.on('stream:audio:start', (data) => {
+        log(`🔴 Incoming Live Audio from ${data.senderName || 'Host'}`, true, 'room-logs');
+        toast(`🔴 Live broadcast: ${data.title}`, 'info');
+        document.getElementById('now-playing-title').innerText = '🔴 ' + (data.title || 'Live Broadcast');
+        document.getElementById('now-playing-artist').innerText = 'Streaming from ' + (data.senderName || 'Host');
+        const ctx = getAudioContext();
+        streamPlayTime = ctx.currentTime + 0.12;
+        isPlaying = true;
+        const playBtn = document.getElementById('main-play-btn');
+        if (playBtn) { playBtn.innerText = '🔴'; playBtn.style.background = 'var(--text)'; }
+        startVisualizer();
+      });
+
+      socket.on('stream:audio:chunk', (data) => {
+        const ctx = getAudioContext();
+        if (ctx.state === 'suspended') return;
+        const int16Array = new Int16Array(data.chunk);
+        const floatArray = new Float32Array(int16Array.length);
+        for (let i = 0; i < int16Array.length; i++) {
+          floatArray[i] = int16Array[i] / 32768;
+        }
+        const buf = ctx.createBuffer(1, floatArray.length, data.sampleRate || 44100);
+        buf.copyToChannel(floatArray, 0);
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(gainNode || ctx.destination);
+        const now = ctx.currentTime;
+        if (streamPlayTime < now) {
+          streamPlayTime = now + 0.05;
+        }
+        try {
+          src.start(streamPlayTime);
+          streamPlayTime += buf.duration;
+        } catch (e) {}
+      });
+
+      socket.on('stream:audio:stop', () => {
+        toast('⏹ Live broadcast ended', 'info');
+        stopVisualizer();
+        isPlaying = false;
+        const playBtn = document.getElementById('main-play-btn');
+        if (playBtn) { playBtn.innerText = '▶'; playBtn.style.background = 'var(--primary)'; }
+        document.getElementById('now-playing-title').innerText = 'Synchronized Beat';
+        document.getElementById('now-playing-artist').innerText = 'RoomBeat Audio Engine';
+      });
+
+      socket.on('playback:youtube', (data) => {
+        log(`▶ Received YouTube track from ${data.senderName || 'Room'}`, true, 'room-logs');
+        loadYouTubeVideo(data.videoId, data.title);
+      });
     }
 
     // ============================================================
@@ -940,9 +1019,9 @@
       if (slider) slider.value = Math.round(roomVolume * 100);
       const badge = document.getElementById('volume-val-badge');
       if (badge) badge.innerText = Math.round(roomVolume * 100) + '%';
-      // System audio only on desktop
+      // System audio visible on all devices (tab capture on desktop, mic/aux on mobile)
       const sysSection = document.getElementById('sys-audio-section');
-      if (sysSection) sysSection.style.display = /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'none' : 'flex';
+      if (sysSection) sysSection.style.display = 'flex';
       renderSpeakerList();
       showScreen('screen-room');
       log('Entered Room: ' + currentRoom.code + (isHost ? ' (Host)' : ' (Speaker)'), true, 'room-logs');
@@ -970,6 +1049,65 @@
         ta.value = currentRoom.code; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
         toast('📋 Copied!', 'success');
       });
+    }
+
+    // ============================================================
+    // YOUTUBE TRACK SYNC
+    // ============================================================
+    function openYouTubeModal() {
+      const modal = document.getElementById('yt-modal');
+      if (modal) modal.style.display = 'flex';
+      const input = document.getElementById('input-yt-url');
+      if (input) { input.value = ''; input.focus(); }
+    }
+
+    function closeYouTubeModal() {
+      const modal = document.getElementById('yt-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function extractYouTubeId(url) {
+      if (!url) return null;
+      const str = url.trim();
+      const m = str.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+      if (m) return m[1];
+      if (/^[\w-]{11}$/.test(str)) return str;
+      return null;
+    }
+
+    function handleYouTubeSync() {
+      const input = document.getElementById('input-yt-url');
+      const url = input ? input.value : '';
+      const videoId = extractYouTubeId(url);
+      if (!videoId) {
+        toast('⚠ Please enter a valid YouTube URL or 11-char ID', 'error');
+        return;
+      }
+      closeYouTubeModal();
+      const title = 'YouTube Track (' + videoId + ')';
+      if (socket && currentRoom) {
+        const startAtServerEpochMs = Date.now() + (Number.isFinite(clockOffset) ? clockOffset : 0) + 2000;
+        socket.emit('playback:youtube', {
+          roomId: currentRoom.id,
+          videoId,
+          title,
+          startAtServerEpochMs,
+          positionSec: 0
+        });
+      }
+      loadYouTubeVideo(videoId, title);
+    }
+
+    function loadYouTubeVideo(videoId, title) {
+      const box = document.getElementById('yt-player-box');
+      if (!box) return;
+      box.style.display = 'block';
+      box.innerHTML = `<iframe id="yt-iframe" width="100%" height="210" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:14px;border:none;"></iframe>`;
+      document.getElementById('now-playing-title').innerText = title || 'YouTube Track';
+      document.getElementById('now-playing-artist').innerText = 'Synced YouTube Video';
+      toast('▶ Synced YouTube video with room!', 'success');
+      log(`▶ Playing YouTube track: "${videoId}"`, true, 'room-logs');
+      startVisualizer();
     }
 
     // ============================================================
@@ -1144,13 +1282,23 @@
         await loadAudioFromUrl('/demo.wav', 'Demo Beat', 'RoomBeat');
       }
 
-      const hwLatencySec = (ctx.outputLatency || 0) + (ctx.baseLatency || 0);
-      const userCalibSec = (userCalibrationMs || 0) / 1000;
-      const serverNow = Date.now() + clockOffset;
-      const rawDelayMs = startAtServerEpochMs - serverNow;
-      const delaySec = (rawDelayMs / 1000) - hwLatencySec + userCalibSec;
+      // Safe arithmetic guards to ensure non-finite values (NaN / Infinity) can never occur
+      const numStartEpoch = Number(startAtServerEpochMs);
+      const numPosMs = Number(startPositionMs);
+      const safeStartEpoch = Number.isFinite(numStartEpoch) ? numStartEpoch : (Date.now() + 100);
+      const safePosMs = Number.isFinite(numPosMs) ? Math.max(0, numPosMs) : 0;
 
-      log(`[Sync] Start in ${Math.round(rawDelayMs)}ms | HW:${Math.round(hwLatencySec*1000)}ms | Calib:${(userCalibrationMs>0?'+':'')+userCalibrationMs}ms | RTT:${Math.round(rtt)}ms`, true, 'room-logs');
+      const safeClockOffset = Number.isFinite(clockOffset) ? clockOffset : 0;
+      const safeCalibMs = Number.isFinite(userCalibrationMs) ? userCalibrationMs : 0;
+      const hwLatencySec = (Number.isFinite(ctx.outputLatency) ? ctx.outputLatency : 0) +
+                           (Number.isFinite(ctx.baseLatency) ? ctx.baseLatency : 0);
+      const userCalibSec = safeCalibMs / 1000;
+      const serverNow = Date.now() + safeClockOffset;
+      const rawDelayMs = safeStartEpoch - serverNow;
+      let delaySec = (rawDelayMs / 1000) - hwLatencySec + userCalibSec;
+      if (!Number.isFinite(delaySec)) delaySec = 0;
+
+      log(`[Sync] Start in ${Math.round(rawDelayMs)}ms | HW:${Math.round(hwLatencySec*1000)}ms | Calib:${(safeCalibMs>0?'+':'')+safeCalibMs}ms | RTT:${Math.round(rtt)}ms`, true, 'room-logs');
 
       if (audioSource) { try { audioSource.stop(); } catch(e) {} }
 
@@ -1169,8 +1317,9 @@
         }
       };
 
-      let targetCtxTime;
-      let offsetSec = (startPositionMs || 0) / 1000;
+      let targetCtxTime = ctx.currentTime;
+      let offsetSec = safePosMs / 1000;
+
       if (delaySec > 0.02) {
         targetCtxTime = ctx.currentTime + delaySec;
       } else {
@@ -1179,8 +1328,19 @@
         targetCtxTime = ctx.currentTime;
       }
 
+      // Safeguard: both arguments must be finite numbers
+      if (!Number.isFinite(targetCtxTime) || targetCtxTime < ctx.currentTime) {
+        targetCtxTime = ctx.currentTime;
+      }
+      if (!Number.isFinite(offsetSec) || offsetSec < 0) {
+        offsetSec = 0;
+      }
+      if (audioBuffer && Number.isFinite(audioBuffer.duration) && offsetSec >= audioBuffer.duration) {
+        offsetSec = Math.max(0, audioBuffer.duration - 0.05);
+      }
+
       try {
-        audioSource.start(targetCtxTime, Math.max(0, offsetSec));
+        audioSource.start(targetCtxTime, offsetSec);
         playbackStartTime = targetCtxTime - offsetSec;
         isPlaying = true;
         const playBtn = document.getElementById('main-play-btn');
@@ -1325,51 +1485,144 @@
     }
 
     // ============================================================
-    // SYSTEM AUDIO CAPTURE (Desktop only)
+    // UNIVERSAL LIVE AUDIO BROADCAST (Tab, System, Mic, Aux)
     // ============================================================
     async function toggleSystemAudio() {
       if (systemAudioStream) {
-        // Stop capture
-        systemAudioStream.getTracks().forEach(t => t.stop());
-        if (systemAudioSource) { try { systemAudioSource.disconnect(); } catch(e) {} systemAudioSource = null; }
-        systemAudioStream = null;
-        document.getElementById('sys-audio-btn').innerText = 'Capture';
-        document.getElementById('sys-audio-live').style.display = 'none';
-        toast('🔇 System audio capture stopped', 'info');
+        stopLiveBroadcast();
         return;
       }
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-        toast('⚠ Your browser does not support tab audio capture', 'error');
-        return;
-      }
-      try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({ audio: true, video: false });
-        const audioTracks = stream.getAudioTracks();
-        if (!audioTracks.length) {
-          toast('⚠ No audio track found — make sure "Share audio" is checked', 'error');
-          stream.getTracks().forEach(t => t.stop());
-          return;
+
+      let stream = null;
+      let mode = 'tab';
+
+      // 1. Attempt getDisplayMedia (Desktop Chrome/Edge tab audio capture)
+      if (navigator.mediaDevices && typeof navigator.mediaDevices.getDisplayMedia === 'function') {
+        try {
+          // Note: Chrome requires video: true for getDisplayMedia
+          stream = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false
+            }
+          });
+          mode = 'tab';
+        } catch (err) {
+          if (err.name === 'NotAllowedError') return;
+          console.warn('getDisplayMedia failed, trying getUserMedia:', err.message);
         }
-        const ctx = getAudioContext();
-        systemAudioSource = ctx.createMediaStreamSource(stream);
-        systemAudioSource.connect(gainNode);
-        systemAudioStream = stream;
-        stream.getAudioTracks()[0].onended = () => {
-          systemAudioStream = null; systemAudioSource = null;
-          document.getElementById('sys-audio-btn').innerText = 'Capture';
-          document.getElementById('sys-audio-live').style.display = 'none';
-          toast('🔇 Screen share ended', 'info');
-        };
-        document.getElementById('sys-audio-btn').innerText = 'Stop';
-        document.getElementById('sys-audio-live').style.display = 'inline';
-        document.getElementById('now-playing-title').innerText = 'Live System Audio';
-        document.getElementById('now-playing-artist').innerText = 'Tab Capture (This Device Only)';
-        toast('🖥️ Capturing tab/system audio — plays locally only', 'success');
-        log('🖥️ System audio capture active', true, 'room-logs');
-        startVisualizer();
-      } catch (err) {
-        if (err.name !== 'NotAllowedError') toast('⚠ Capture error: ' + err.message, 'error');
       }
+
+      // 2. Fallback / Mobile: getUserMedia (Microphone, Stereo Mix, virtual audio cable)
+      if (!stream && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false
+            }
+          });
+          mode = 'mic';
+          toast('🎙 Capturing microphone / audio input', 'info');
+        } catch (err) {
+          if (err.name === 'NotAllowedError') return;
+          console.warn('getUserMedia failed:', err.message);
+        }
+      }
+
+      if (!stream) {
+        toast('⚠ Audio capture not supported on this browser/origin. Try Chrome on localhost or File Upload/YouTube.', 'error');
+        return;
+      }
+
+      const audioTracks = stream.getAudioTracks();
+      if (!audioTracks.length) {
+        toast('⚠ No audio track detected. When sharing a tab, make sure "Share audio" is checked!', 'error');
+        stream.getTracks().forEach(t => t.stop());
+        return;
+      }
+
+      // Stop unused video tracks to conserve battery and CPU
+      stream.getVideoTracks().forEach(t => t.stop());
+
+      const ctx = getAudioContext();
+      systemAudioStream = stream;
+      systemAudioSource = ctx.createMediaStreamSource(stream);
+
+      // Create ScriptProcessor to capture raw PCM Int16 samples and stream to all phones
+      const processor = ctx.createScriptProcessor(4096, 1, 1);
+      streamAudioProcessor = processor;
+
+      systemAudioSource.connect(processor);
+      systemAudioSource.connect(gainNode || ctx.destination);
+      processor.connect(ctx.destination);
+
+      audioTracks[0].onended = () => {
+        stopLiveBroadcast();
+      };
+
+      const title = mode === 'tab' ? 'Live System / Tab Audio' : 'Live Microphone / Voice';
+      document.getElementById('sys-audio-btn').innerText = 'Stop';
+      document.getElementById('sys-audio-live').style.display = 'inline';
+      document.getElementById('now-playing-title').innerText = title;
+      document.getElementById('now-playing-artist').innerText = 'Broadcasting to All Speakers';
+
+      toast('📡 Broadcasting live sound to all devices in sync!', 'success');
+      log('📡 Live broadcast active (' + mode + ') — streaming to all room phones', true, 'room-logs');
+      startVisualizer();
+
+      if (socket && currentRoom) {
+        socket.emit('stream:audio:start', {
+          roomId: currentRoom.id,
+          sourceType: mode,
+          title: title,
+          sampleRate: ctx.sampleRate
+        });
+      }
+
+      processor.onaudioprocess = (e) => {
+        if (!systemAudioStream) return;
+        const inputData = e.inputBuffer.getChannelData(0);
+        const int16 = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i++) {
+          int16[i] = Math.max(-32768, Math.min(32767, Math.floor(inputData[i] * 32767)));
+        }
+        if (socket && currentRoom) {
+          socket.emit('stream:audio:chunk', {
+            roomId: currentRoom.id,
+            chunk: int16.buffer,
+            sampleRate: ctx.sampleRate,
+            timestamp: Date.now() + (Number.isFinite(clockOffset) ? clockOffset : 0)
+          });
+        }
+      };
+    }
+
+    function stopLiveBroadcast() {
+      if (systemAudioStream) {
+        systemAudioStream.getTracks().forEach(t => t.stop());
+        systemAudioStream = null;
+      }
+      if (streamAudioProcessor) {
+        try { streamAudioProcessor.disconnect(); } catch(e) {}
+        streamAudioProcessor = null;
+      }
+      if (systemAudioSource) {
+        try { systemAudioSource.disconnect(); } catch(e) {}
+        systemAudioSource = null;
+      }
+      if (socket && currentRoom) {
+        socket.emit('stream:audio:stop', { roomId: currentRoom.id });
+      }
+      const btn = document.getElementById('sys-audio-btn');
+      if (btn) btn.innerText = 'Capture';
+      const live = document.getElementById('sys-audio-live');
+      if (live) live.style.display = 'none';
+      stopVisualizer();
+      toast('🔇 Live broadcast stopped', 'info');
     }
 
     // ============================================================
