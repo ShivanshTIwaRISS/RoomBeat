@@ -9,7 +9,7 @@ export const usePlayback = () => {
     const positionMs = usePlaybackStore((s) => s.positionMs);
     const durationMs = usePlaybackStore((s) => s.durationMs);
     const prepare = (trackId) => {
-        if (!currentRoom || !isHost)
+        if (!currentRoom)
             return;
         const socket = socketService.getSocket();
         if (socket) {
@@ -20,7 +20,7 @@ export const usePlayback = () => {
         }
     };
     const play = (customPositionMs) => {
-        if (!currentRoom || !isHost)
+        if (!currentRoom)
             return;
         const socket = socketService.getSocket();
         const pos = customPositionMs !== undefined ? customPositionMs : positionMs;
@@ -36,7 +36,7 @@ export const usePlayback = () => {
         }
     };
     const pause = () => {
-        if (!currentRoom || !isHost)
+        if (!currentRoom)
             return;
         const socket = socketService.getSocket();
         if (socket) {
@@ -47,7 +47,7 @@ export const usePlayback = () => {
         }
     };
     const seek = (newPositionMs) => {
-        if (!currentRoom || !isHost)
+        if (!currentRoom)
             return;
         const socket = socketService.getSocket();
         if (socket) {
@@ -58,7 +58,7 @@ export const usePlayback = () => {
         }
     };
     const next = () => {
-        if (!currentRoom || !isHost)
+        if (!currentRoom)
             return;
         const socket = socketService.getSocket();
         if (socket) {
@@ -69,7 +69,7 @@ export const usePlayback = () => {
         }
     };
     const previous = () => {
-        if (!currentRoom || !isHost)
+        if (!currentRoom)
             return;
         const socket = socketService.getSocket();
         if (socket) {
@@ -80,7 +80,7 @@ export const usePlayback = () => {
         }
     };
     const stop = () => {
-        if (!currentRoom || !isHost)
+        if (!currentRoom)
             return;
         const socket = socketService.getSocket();
         if (socket) {

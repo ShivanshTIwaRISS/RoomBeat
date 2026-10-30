@@ -40,6 +40,12 @@ export const storage = {
         ].slice(0, 10);
         return AsyncStorage.setItem(STORAGE_KEYS.RECENT_ROOMS, JSON.stringify(updated));
     },
+    async getDeviceId() {
+        return AsyncStorage.getItem('@roombeat:device_id');
+    },
+    async setDeviceId(deviceId) {
+        return AsyncStorage.setItem('@roombeat:device_id', deviceId);
+    },
     async getHasSeenOnboarding() {
         const raw = await AsyncStorage.getItem(STORAGE_KEYS.HAS_SEEN_ONBOARDING);
         return raw === 'true';

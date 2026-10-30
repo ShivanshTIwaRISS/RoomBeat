@@ -71,12 +71,12 @@ export const HomeScreen = ({ navigation }) => {
       {/* Recent Rooms */}
       {recentRooms.length > 0 && (<View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Rooms</Text>
-          {recentRooms.map((room) => (<TouchableOpacity key={room.id} style={styles.recentItem} onPress={() => navigation.navigate('RoomDashboard', { roomId: room.id })} activeOpacity={0.7}>
+          {recentRooms.map((room) => (<TouchableOpacity key={room.id} style={styles.recentItem} onPress={() => navigation.navigate('JoinRoom', { code: room.code })} activeOpacity={0.7}>
               <View>
                 <Text style={styles.recentName}>{room.name}</Text>
                 <Text style={styles.recentCode}>Code: {formatRoomCode(room.code)}</Text>
               </View>
-              <Text style={styles.recentArrow}>→</Text>
+              <Text style={styles.recentArrow}>Rejoin →</Text>
             </TouchableOpacity>))}
         </View>)}
 

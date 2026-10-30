@@ -37,7 +37,11 @@ export const useSessionStore = create((set, get) => ({
     createGuest: async (displayName) => {
         try {
             set({ isLoading: true, error: null });
-            const deviceId = uuidv4();
+            let deviceId = await storage.getDeviceId();
+            if (!deviceId) {
+                deviceId = uuidv4();
+                await storage.setDeviceId(deviceId);
+            }
             const deviceName = `${Platform.OS === 'android' ? 'Android' : 'iOS'} Device`;
             const response = await sessionsApi.createGuest({
                 displayName,
