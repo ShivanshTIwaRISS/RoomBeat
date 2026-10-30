@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const queue_controller_1 = require("../controllers/queue.controller");
+const auth_1 = require("../middleware/auth");
+const validate_1 = require("../middleware/validate");
+const queue_validators_1 = require("../validators/queue.validators");
+const router = (0, express_1.Router)();
+router.get('/:roomId/queue', auth_1.authenticate, queue_controller_1.getQueue);
+router.post('/:roomId/queue', auth_1.authenticate, (0, validate_1.validate)(queue_validators_1.addToQueueSchema), queue_controller_1.addToQueue);
+router.patch('/:roomId/queue/reorder', auth_1.authenticate, (0, validate_1.validate)(queue_validators_1.reorderQueueSchema), queue_controller_1.reorderQueue);
+router.delete('/:roomId/queue/:itemId', auth_1.authenticate, queue_controller_1.removeFromQueue);
+router.delete('/:roomId/queue', auth_1.authenticate, queue_controller_1.clearQueue);
+exports.default = router;

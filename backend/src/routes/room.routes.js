@@ -1,0 +1,18 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const room_controller_1 = require("../controllers/room.controller");
+const auth_1 = require("../middleware/auth");
+const validate_1 = require("../middleware/validate");
+const room_validators_1 = require("../validators/room.validators");
+const router = (0, express_1.Router)();
+router.post('/', auth_1.authenticate, (0, validate_1.validate)(room_validators_1.createRoomSchema), room_controller_1.createRoom);
+router.post('/join', auth_1.authenticate, (0, validate_1.validate)(room_validators_1.joinRoomSchema), room_controller_1.joinRoom);
+router.get('/by-code/:code', auth_1.authenticate, room_controller_1.getRoomByCode);
+router.get('/:roomId', auth_1.authenticate, room_controller_1.getRoom);
+router.post('/:roomId/leave', auth_1.authenticate, room_controller_1.leaveRoom);
+router.get('/:roomId/devices', auth_1.authenticate, room_controller_1.getRoomDevices);
+router.patch('/:roomId/settings', auth_1.authenticate, (0, validate_1.validate)(room_validators_1.updateRoomSchema), room_controller_1.updateRoomSettings);
+router.post('/:roomId/host/transfer', auth_1.authenticate, (0, validate_1.validate)(room_validators_1.transferHostSchema), room_controller_1.transferHost);
+router.delete('/:roomId', auth_1.authenticate, room_controller_1.closeRoom);
+exports.default = router;

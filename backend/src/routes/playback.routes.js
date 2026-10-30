@@ -1,0 +1,17 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const playback_controller_1 = require("../controllers/playback.controller");
+const auth_1 = require("../middleware/auth");
+const validate_1 = require("../middleware/validate");
+const playback_validators_1 = require("../validators/playback.validators");
+const router = (0, express_1.Router)();
+router.get('/:roomId/playback', auth_1.authenticate, playback_controller_1.getPlaybackState);
+router.post('/:roomId/playback/prepare', auth_1.authenticate, (0, validate_1.validate)(playback_validators_1.preparePlaybackSchema), playback_controller_1.preparePlayback);
+router.post('/:roomId/playback/play', auth_1.authenticate, (0, validate_1.validate)(playback_validators_1.playPlaybackSchema), playback_controller_1.playPlayback);
+router.post('/:roomId/playback/pause', auth_1.authenticate, playback_controller_1.pausePlayback);
+router.post('/:roomId/playback/seek', auth_1.authenticate, (0, validate_1.validate)(playback_validators_1.seekPlaybackSchema), playback_controller_1.seekPlayback);
+router.post('/:roomId/playback/next', auth_1.authenticate, playback_controller_1.nextPlayback);
+router.post('/:roomId/playback/previous', auth_1.authenticate, playback_controller_1.previousPlayback);
+router.post('/:roomId/playback/stop', auth_1.authenticate, playback_controller_1.stopPlayback);
+exports.default = router;

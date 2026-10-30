@@ -1,0 +1,24 @@
+import axios from 'axios';
+import { API_BASE_URL } from '../constants/config';
+import { storage } from '../utils/storage';
+export const apiClient = axios.create({
+    baseURL: `${API_BASE_URL}/api/v1`,
+    timeout: 15000,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+// Request interceptor to attach JWT token
+apiClient.interceptors.request.use(async (config) => {
+    const token = await storage.getToken();
+    if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+// Response interceptor to extract data payload
+apiClient.interceptors.response.use((response) => response.data, (error) => {
+    const message = error.response?.data?.message || error.message || 'Network request failed';
+    const code = error.response?.data?.error?.code || 'NETWORK_ERROR';
+    return Promise.reject({ message, code, status: error.response?.status });
+});

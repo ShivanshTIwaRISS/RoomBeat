@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const session_controller_1 = require("../controllers/session.controller");
+const auth_1 = require("../middleware/auth");
+const validate_1 = require("../middleware/validate");
+const session_validators_1 = require("../validators/session.validators");
+const router = (0, express_1.Router)();
+router.post('/guest', (0, validate_1.validate)(session_validators_1.createGuestSessionSchema), session_controller_1.createGuestSession);
+router.get('/me', auth_1.authenticate, session_controller_1.getCurrentSession);
+router.delete('/me', auth_1.authenticate, session_controller_1.endSession);
+exports.default = router;

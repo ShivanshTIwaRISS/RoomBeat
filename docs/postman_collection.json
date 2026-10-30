@@ -1,0 +1,157 @@
+{
+  "info": {
+    "_postman_id": "roombeat-api-collection",
+    "name": "RoomBeat REST API",
+    "description": "Complete collection for RoomBeat multi-device audio synchronization API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/health", "host": ["{{baseUrl}}"], "path": ["api", "v1", "health"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "Create Guest Session",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Shivansh\",\n  \"deviceId\": \"galaxy-s24-uuid\",\n  \"deviceName\": \"Samsung Galaxy S24\",\n  \"platform\": \"android\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/sessions/guest", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "guest"] }
+          }
+        },
+        {
+          "name": "Get Current Session",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/sessions/me", "host": ["{{baseUrl}}"], "path": ["api", "v1", "sessions", "me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rooms",
+      "item": [
+        {
+          "name": "Create Room",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hostel Music Night\",\n  \"isPrivate\": false,\n  \"maxDevices\": 10\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/rooms", "host": ["{{baseUrl}}"], "path": ["api", "v1", "rooms"] }
+          }
+        },
+        {
+          "name": "Join Room by Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"RB9481\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/rooms/join", "host": ["{{baseUrl}}"], "path": ["api", "v1", "rooms", "join"] }
+          }
+        },
+        {
+          "name": "Get Room by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}", "host": ["{{baseUrl}}"], "path": ["api", "v1", "rooms", "{{roomId}}"] }
+          }
+        },
+        {
+          "name": "Get Room Devices",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}/devices", "host": ["{{baseUrl}}"], "path": ["api", "v1", "rooms", "{{roomId}}", "devices"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Playback",
+      "item": [
+        {
+          "name": "Get Playback State",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}/playback", "host": ["{{baseUrl}}"], "path": ["api", "v1", "rooms", "{{roomId}}", "playback"] }
+          }
+        },
+        {
+          "name": "Prepare Track",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trackId\": \"{{trackId}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}/playback/prepare", "host": ["{{baseUrl}}"], "path": ["api", "v1", "rooms", "{{roomId}}", "playback", "prepare"] }
+          }
+        },
+        {
+          "name": "Schedule Play",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"positionMs\": 0,\n  \"delayMs\": 3000\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}/playback/play", "host": ["{{baseUrl}}"], "path": ["api", "v1", "rooms", "{{roomId}}", "playback", "play"] }
+          }
+        },
+        {
+          "name": "Pause Playback",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}/playback/pause", "host": ["{{baseUrl}}"], "path": ["api", "v1", "rooms", "{{roomId}}", "playback", "pause"] }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "token", "value": "" },
+    { "key": "roomId", "value": "" },
+    { "key": "trackId", "value": "" }
+  ]
+}
+

@@ -1,0 +1,49 @@
+# Node dependencies
+node_modules/
+*/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment & credentials
+.env
+.env.local
+.env.*.local
+*.env
+
+# SQLite databases & logs
+*.db
+*.db-journal
+backend/prisma/*.db
+backend/prisma/*.db-journal
+*.log
+
+# Audio uploads storage (keep directory structure)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# macOS metadata
+.DS_Store
+*/.DS_Store
+.AppleDouble
+.LSOverride
+
+# React Native & Android
+mobile/android/.gradle/
+mobile/android/app/build/
+mobile/android/build/
+mobile/android/.idea/
+mobile/android/*.iml
+mobile/android/local.properties
+
+# iOS
+mobile/ios/Pods/
+mobile/ios/build/
+mobile/ios/*.xcworkspace/xcuserdata/
+mobile/ios/*.xcodeproj/xcuserdata/
+
+# Build outputs & caches
+dist/
+build/
+.cache/
+.metro/

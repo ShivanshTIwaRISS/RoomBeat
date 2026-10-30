@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model UserSession {
+  id               String          @id @default(uuid())
+  displayName      String
+  accessTokenHash  String
+  deviceId         String          @unique
+  deviceName       String
+  platform         String          @default("android")
+  appVersion       String?
+  lastSeenAt       DateTime        @default(now())
+  connectionStatus String          @default("offline")
+  createdAt        DateTime        @default(now())
+  expiresAt        DateTime
+
+  hostedRooms      Room[]          @relation("RoomHost")
+  roomMembers      RoomMember[]
+  tracks           Track[]
+  syncReports      SyncReport[]
+  deviceSettings   DeviceSettings?
+}
+
+model Room {
+  id            String         @id @default(uuid())
+  name          String
+  code          String         @unique
+  hostSessionId String
+  host          UserSession    @relation("RoomHost", fields: [hostSessionId], references: [id])
+  isPrivate     Boolean        @default(false)
+  maxDevices    Int            @default(10)
+  status        String         @default("active")
+  createdAt     DateTime       @default(now())
+  expiresAt     DateTime
+
+  members       RoomMember[]
+  tracks        Track[]
+  queueItems    QueueItem[]
+  playbackState PlaybackState?
+  syncReports   SyncReport[]
+
+  @@index([code])
+  @@index([status])
+}
+
+model RoomMember {
+  id        String      @id @default(uuid())
+  roomId    String
+  room      Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sessionId String
+  session   UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String      @default("SPEAKER")
+  joinedAt  DateTime    @default(now())
+  isActive  Boolean     @default(true)
+
+  @@unique([roomId, sessionId])
+  @@index([roomId])
+  @@index([sessionId])
+}
+
+model Track {
+  id          String      @id @default(uuid())
+  roomId      String
+  room        Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  filename    String
+  title       String
+  artist      String      @default("Unknown")
+  durationMs  Int?
+  fileSize    Int
+  mimeType    String
+  checksum    String
+  storagePath String
+  uploadedBy  String
+  uploader    UserSession @relation(fields: [uploadedBy], references: [id])
+  createdAt   DateTime    @default(now())
+
+  queueItems  QueueItem[]
+
+  @@index([roomId])
+}
+
+model QueueItem {
+  id       String   @id @default(uuid())
+  roomId   String
+  room     Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  trackId  String
+  track    Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  position Int
+  addedAt  DateTime @default(now())
+
+  @@index([roomId])
+  @@unique([roomId, position])
+}
+
+model PlaybackState {
+  id               String   @id @default(uuid())
+  roomId           String   @unique
+  room             Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  currentTrackId   String?
+  positionMs       Int      @default(0)
+  status           String   @default("idle")
+  serverStartAt    BigInt?
+  updatedAt        DateTime @updatedAt
+  sequenceNumber   Int      @default(0)
+}
+
+model SyncReport {
+  id              String      @id @default(uuid())
+  roomId          String
+  room            Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sessionId       String
+  session         UserSession @relation(fields: [sessionId], references: [id])
+  clockOffsetMs   Float
+  roundTripTimeMs Float
+  playbackDriftMs Float?
+  positionMs      Int?
+  recordedAt      DateTime    @default(now())
+
+  @@index([roomId])
+  @@index([sessionId])
+}
+
+model DeviceSettings {
+  id                    String      @id @default(uuid())
+  sessionId             String      @unique
+  session               UserSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  localVolume           Float       @default(1.0)
+  latencyCompensationMs Int         @default(0)
+  updatedAt             DateTime    @updatedAt
+}

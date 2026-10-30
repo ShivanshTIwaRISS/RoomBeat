@@ -1,0 +1,22 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const health_routes_1 = __importDefault(require("./health.routes"));
+const session_routes_1 = __importDefault(require("./session.routes"));
+const room_routes_1 = __importDefault(require("./room.routes"));
+const track_routes_1 = __importDefault(require("./track.routes"));
+const queue_routes_1 = __importDefault(require("./queue.routes"));
+const playback_routes_1 = __importDefault(require("./playback.routes"));
+const sync_routes_1 = __importDefault(require("./sync.routes"));
+const router = (0, express_1.Router)();
+router.use('/health', health_routes_1.default);
+router.use('/sessions', session_routes_1.default);
+router.use('/rooms', room_routes_1.default);
+router.use('/', track_routes_1.default);
+router.use('/rooms', queue_routes_1.default);
+router.use('/rooms', playback_routes_1.default);
+router.use('/rooms', sync_routes_1.default);
+exports.default = router;

@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RoomBeat — Synchronized Wireless Speaker System</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    :root {
+      --bg: #0D0D0F;
+      --surface: #16161A;
+      --surface-light: #212126;
+      --border: #2A2A32;
+      --primary: #C8FF00;
+      --primary-muted: rgba(200, 255, 0, 0.15);
+      --text: #F5F5F7;
+      --text-sec: #8E8E93;
+      --text-muted: #636366;
+      --success: #30D158;
+      --warning: #FFD60A;
+      --error: #FF453A;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: #050507;
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 10px;
+    }
+
+    .app-frame {
+      width: 100%;
+      max-width: 440px;
+      min-height: 90vh;
+      max-height: 94vh;
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(200, 255, 0, 0.05);
+      position: relative;
+    }
+
+    @media (max-width: 480px) {
+      body { padding: 0; }
+      .app-frame {
+        max-width: 100%;
+        min-height: 100vh;
+        max-height: none;
+        border-radius: 0;
+        border: none;
+      }
+    }
+
+    .screen {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      padding: 20px;
+    }
+    .screen.active {
+      display: flex;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .badge-primary { background: var(--primary-muted); color: var(--primary); }
+    .badge-success { background: rgba(48, 209, 88, 0.15); color: var(--success); }
+    .badge-warning { background: rgba(255, 214, 10, 0.15); color: var(--warning); }
+    .badge-error { background: rgba(255, 69, 58, 0.15); color: var(--error); }
+
+    .waveform {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      height: 36px;
+      margin: 15px 0;
+    }
+    .wave-bar {
+      width: 4px;
+      background: var(--primary);
+      border-radius: 2px;
+      animation: wave 1s ease-in-out infinite alternate;
+    }
+    .wave-bar:nth-child(1) { height: 12px; animation-delay: 0.1s; }
+    .wave-bar:nth-child(2) { height: 26px; animation-delay: 0.3s; }
+    .wave-bar:nth-child(3) { height: 18px; animation-delay: 0.2s; }
+    .wave-bar:nth-child(4) { height: 32px; animation-delay: 0.4s; }
+    .wave-bar:nth-child(5) { height: 14px; animation-delay: 0.15s; }
+    .wave-bar:nth-child(6) { height: 24px; animation-delay: 0.35s; }
+    .wave-bar:nth-child(7) { height: 10px; animation-delay: 0.25s; }
+
+    @keyframes wave {
+      from { transform: scaleY(0.4); }
+      to { transform: scaleY(1.3); }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    .card-glow {
+      border-color: rgba(200, 255, 0, 0.4);
+      box-shadow: 0 4px 20px rgba(200, 255, 0, 0.12);
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary { background: var(--primary); color: #000; }
+    .btn-secondary { background: var(--surface-light); color: var(--text); border: 1px solid var(--border); }
+    .btn-sm { padding: 8px 14px; font-size: 13px; border-radius: 8px; width: auto; }
+
+    .input-group { margin-bottom: 14px; }
+    .input-label { font-size: 13px; color: var(--text-sec); margin-bottom: 6px; display: block; font-weight: 600; }
+    .input {
+      width: 100%;
+      padding: 12px 14px;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 15px;
+      outline: none;
+    }
+    .input:focus { border-color: var(--primary); }
+
+    .artwork {
+      width: 140px;
+      height: 140px;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      margin: 10px auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 54px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .track-title { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 4px; }
+    .track-artist { font-size: 14px; color: var(--text-sec); text-align: center; margin-bottom: 16px; }
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: var(--surface-light);
+      border-radius: 4px;
+      position: relative;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+    .progress-fill { height: 100%; background: var(--primary); border-radius: 4px; width: 0%; transition: width 0.1s linear; }
+    .time-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-sec); margin-bottom: 16px; font-family: monospace; }
+    .controls-row { display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 20px; }
+    .control-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 24px;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .control-btn.play-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 32px;
+      background: var(--primary);
+      color: #000;
+      font-size: 24px;
+      border: none;
+      box-shadow: 0 6px 20px rgba(200, 255, 0, 0.35);
+    }
+
+    .device-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .device-row:last-child { border-bottom: none; }
+    .device-info { display: flex; align-items: center; gap: 10px; }
+    .device-icon { font-size: 20px; }
+    .device-name { font-size: 14px; font-weight: 600; }
+    .device-meta { font-size: 11px; color: var(--text-sec); }
+
+    .sync-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      text-align: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .metric-box { background: var(--surface-light); padding: 8px; border-radius: 8px; }
+    .metric-val { font-size: 14px; font-weight: 700; color: var(--primary); font-family: monospace; }
+    .metric-label { font-size: 10px; color: var(--text-sec); text-transform: uppercase; margin-top: 2px; }
+
+    .sim-bar {
+      background: #111114;
+      border-top: 1px solid var(--border);
+      padding: 10px 16px;
+      font-size: 12px;
+      color: var(--text-sec);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+    }
+
+    /* Live console feedback */
+    .log-box {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--text-sec);
+      margin-top: 10px;
+      max-height: 60px;
+      overflow-y: auto;
+    }
+    .log-item { margin-bottom: 2px; }
+    .log-success { color: var(--primary); }
+    .log-error { color: var(--error); }
+  </style>
+</head>
+<body>
+
+  <div class="app-frame">
+
+    <!-- SCREEN 1: HOME -->
+    <div id="screen-home" class="screen active">
+      <div class="header">
+        <div class="brand"><span>🔊</span> RoomBeat</div>
+        <span id="home-status-badge" class="badge badge-primary">Initializing...</span>
+      </div>
+
+      <div style="margin: 10px 0;">
+        <span style="font-size: 13px; color: var(--primary); font-weight: 700; letter-spacing: 1px; text-transform: uppercase;">Every Phone. One Beat.</span>
+        <h1 style="font-size: 26px; font-weight: 700; margin-top: 4px; line-height: 1.2;">Synchronized Wireless Speaker System</h1>
+      </div>
+
+      <div class="waveform">
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+      </div>
+
+      <div class="card card-glow">
+        <div style="font-size: 28px; margin-bottom: 6px;">👑</div>
+        <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">Host a Room</h2>
+        <p style="font-size: 13px; color: var(--text-sec); margin-bottom: 14px;">Create a room, invite phones, and broadcast synchronized beats.</p>
+        <button id="btn-create-room" class="btn btn-primary" onclick="handleCreateRoomClick()">👑 Create Room Now</button>
+      </div>
+
+      <div class="card">
+        <div style="font-size: 28px; margin-bottom: 6px;">🔗</div>
+        <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">Join a Room</h2>
+        <p style="font-size: 13px; color: var(--text-sec); margin-bottom: 14px;">Enter a 6-character room code to join as a speaker.</p>
+        <div style="display: flex; gap: 8px;">
+          <input id="input-join-code-quick" class="input" type="text" placeholder="CODE" maxlength="6" style="text-align: center; font-family: monospace; font-size: 18px; font-weight: 700; text-transform: uppercase; width: 120px;">
+          <button id="btn-join-room" class="btn btn-secondary" onclick="handleJoinRoomClick()" style="flex: 1;">Join Room</button>
+        </div>
+      </div>
+
+      <div id="home-logs" class="log-box">
+        <div class="log-item log-success">✓ Ready to connect</div>
+      </div>
+    </div>
+
+    <!-- SCREEN 2: ROOM DASHBOARD -->
+    <div id="screen-room" class="screen">
+      <div class="header">
+        <div>
+          <div id="dash-room-name" style="font-size: 16px; font-weight: 700;">Party Room</div>
+          <div id="dash-room-code" style="font-size: 13px; color: var(--primary); font-family: monospace; font-weight: 700; letter-spacing: 1px;">CODE: ------</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="leaveRoom()">Exit</button>
+      </div>
+
+      <!-- Sync Diagnostics Card -->
+      <div class="card" style="padding: 12px; margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-size: 12px; font-weight: 700;">⚡ Audio Sync Engine</span>
+          <span id="sync-health-badge" class="badge badge-success">Active Sync</span>
+        </div>
+        <div class="sync-metrics">
+          <div class="metric-box">
+            <div id="sync-offset" class="metric-val">0 ms</div>
+            <div class="metric-label">Clock Offset</div>
+          </div>
+          <div class="metric-box">
+            <div id="sync-rtt" class="metric-val">0 ms</div>
+            <div class="metric-label">Network RTT</div>
+          </div>
+          <div class="metric-box">
+            <div id="sync-drift" class="metric-val">&lt; 15 ms</div>
+            <div class="metric-label">Estimated Drift</div>
+          </div>
+        </div>
+
+        <!-- Fine-Tune Hardware Latency Calibration -->
+        <div style="margin-top: 10px; background: var(--surface-light); padding: 8px 10px; border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <span style="font-size: 11px; font-weight: 700; color: var(--text-sec); text-transform: uppercase;">
+              🎯 Latency Fine-Tune Nudge
+            </span>
+            <span id="calib-val" style="font-family: monospace; font-size: 12px; font-weight: 700; color: var(--primary);">0 ms</span>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button class="btn btn-secondary btn-sm" onclick="nudgeCalibration(-5)" style="padding: 4px 8px; font-size: 11px; width: auto;">-5ms</button>
+            <button class="btn btn-secondary btn-sm" onclick="nudgeCalibration(-1)" style="padding: 4px 8px; font-size: 11px; width: auto;">-1ms</button>
+            <input id="calib-slider" type="range" min="-60" max="60" value="0" step="1" oninput="onCalibrationChange(this.value)" style="flex: 1; accent-color: var(--primary); cursor: pointer;">
+            <button class="btn btn-secondary btn-sm" onclick="nudgeCalibration(+1)" style="padding: 4px 8px; font-size: 11px; width: auto;">+1ms</button>
+            <button class="btn btn-secondary btn-sm" onclick="nudgeCalibration(+5)" style="padding: 4px 8px; font-size: 11px; width: auto;">+5ms</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Player Artwork -->
+      <div class="artwork" id="artwork-icon">🎵</div>
+      <div id="now-playing-title" class="track-title">Synthesized Beat</div>
+      <div id="now-playing-artist" class="track-artist">RoomBeat Audio Engine</div>
+
+      <!-- Progress -->
+      <div class="progress-bar-container" onclick="handleProgressBarClick(event)">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+      <div class="time-row">
+        <span id="time-current">0:00</span>
+        <span id="time-total">0:30</span>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls-row">
+        <button class="control-btn" onclick="triggerRestart()">⏮</button>
+        <button id="main-play-btn" class="control-btn play-btn" onclick="togglePlay()">▶</button>
+        <button class="control-btn" onclick="triggerNext()">⏭</button>
+      </div>
+
+      <!-- Synchronized Master Volume Card -->
+      <div class="card" style="padding: 12px; margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div style="font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+            <span id="volume-icon">🔊</span> Synchronized Master Volume
+          </div>
+          <span id="volume-val-badge" class="badge badge-primary">80%</span>
+        </div>
+        <input id="room-volume-slider" type="range" min="0" max="100" value="80" 
+               oninput="handleVolumeChange(this.value)" 
+               style="width: 100%; accent-color: var(--primary); cursor: pointer;">
+      </div>
+
+      <!-- Music Selection Card -->
+      <div class="card" style="padding: 12px; margin-bottom: 12px;">
+        <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">🎵 Choose / Sync Music</div>
+        <div style="display: flex; gap: 8px; flex-direction: column;">
+          
+          <!-- Option 1: Load Local File directly (Fastest, instant on both phone & laptop) -->
+          <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface-light); padding: 10px; border-radius: 10px;">
+            <div>
+              <div style="font-size: 12px; font-weight: 700;">⚡ Load Same Song on Both Devices</div>
+              <div style="font-size: 11px; color: var(--text-sec);">Pick audio file on phone & laptop (Instant offline sync)</div>
+            </div>
+            <label class="btn btn-secondary btn-sm" style="cursor: pointer; width: auto; padding: 7px 12px;">
+              Pick File
+              <input type="file" id="local-file-input" accept="audio/*" style="display: none;" onchange="handleLocalFileLoad(event)">
+            </label>
+          </div>
+
+          <!-- Option 2: Upload & Share to All Devices (Host or Member can upload) -->
+          <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface-light); padding: 10px; border-radius: 10px;">
+            <div>
+              <div style="font-size: 12px; font-weight: 700;">☁️ Upload & Share to Room</div>
+              <div style="font-size: 11px; color: var(--text-sec);">Upload to room so everyone downloads it automatically</div>
+            </div>
+            <label class="btn btn-secondary btn-sm" style="cursor: pointer; width: auto; padding: 7px 12px;">
+              Upload
+              <input type="file" id="track-file-input" accept="audio/*" style="display: none;" onchange="handleFileUpload(event)">
+            </label>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Connected Speakers -->
+      <div class="card" style="padding: 14px;">
+        <div style="font-size: 14px; font-weight: 700; margin-bottom: 10px; display: flex; justify-content: space-between;">
+          <span>Connected Speakers</span>
+          <span id="speaker-count" style="color: var(--primary);">1 speaker</span>
+        </div>
+        <div id="speakers-list">
+          <!-- Speakers rendered dynamically -->
+        </div>
+      </div>
+
+      <div id="room-logs" class="log-box"></div>
+    </div>
+
+    <!-- Bottom Status Bar -->
+    <div class="sim-bar">
+      <span id="connection-status">● Connecting...</span>
+      <span id="device-id-tag">Web Player</span>
+    </div>
+
+  </div>
+
+  <script>
+    // State
+    let socket = null;
+    let authToken = null;
+    let currentSession = null;
+    let currentRoom = null;
+    let isHost = false;
+    let audioCtx = null;
+    let gainNode = null;
+    let roomVolume = 0.8;
+    let userCalibrationMs = parseInt(localStorage.getItem('roombeat_calib') || '0', 10);
+    let audioBuffer = null;
+    let audioSource = null;
+    let isPlaying = false;
+    let playbackStartTime = 0;
+    let pauseOffset = 0;
+    let clockOffset = 0;
+    let rtt = 0;
+    let animFrame = null;
+    let ntpSamples = [];
+    let isTrackLoading = false;
+
+    function log(msg, isSuccess = true, targetId = 'home-logs') {
+      const el = document.getElementById(targetId) || document.getElementById('home-logs');
+      if (el) {
+        const item = document.createElement('div');
+        item.className = 'log-item ' + (isSuccess ? 'log-success' : 'log-error');
+        item.innerText = '• ' + msg;
+        el.appendChild(item);
+        el.scrollTop = el.scrollHeight;
+      }
+    }
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById(id);
+      if (target) target.classList.add('active');
+    }
+
+    function formatTime(secs) {
+      if (isNaN(secs) || secs < 0) return '0:00';
+      const m = Math.floor(secs / 60);
+      const s = Math.floor(secs % 60);
+      return `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    // Audio context helper with Master Gain Node for volume sync
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContextClass();
+      }
+      if (!gainNode && audioCtx) {
+        gainNode = audioCtx.createGain();
+        gainNode.gain.setValueAtTime(roomVolume, audioCtx.currentTime);
+        gainNode.connect(audioCtx.destination);
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    // Audio buffer loader with byte-for-byte cross-device synchronization
+    // Returns a promise that resolves when audio is fully loaded and decoded
+    let _loadAudioPromise = null;
+    let _loadedAudioUrl = null;
+
+    function loadAudioFromUrl(url, title = 'Synchronized Beat', artist = 'RoomBeat Audio Engine') {
+      // If already loading the same URL, return the existing promise
+      if (_loadAudioPromise && _loadedAudioUrl === url) return _loadAudioPromise;
+
+      _loadedAudioUrl = url;
+      _loadAudioPromise = _doLoadAudio(url, title, artist);
+      return _loadAudioPromise;
+    }
+
+    async function _doLoadAudio(url, title, artist) {
+      const ctx = getAudioContext();
+
+      try {
+        log('⬇ Downloading shared track: ' + title, true, 'room-logs');
+        document.getElementById('now-playing-title').innerText = '⏳ Syncing Audio...';
+        document.getElementById('now-playing-artist').innerText = title;
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const arrayBuf = await res.arrayBuffer();
+        log(`Downloaded ${(arrayBuf.byteLength / 1024).toFixed(0)} KB, decoding...`, true, 'room-logs');
+
+        const decoded = await new Promise((resolve, reject) => {
+          ctx.decodeAudioData(arrayBuf.slice(0), resolve, reject);
+        });
+
+        audioBuffer = decoded;
+        document.getElementById('now-playing-title').innerText = title;
+        document.getElementById('now-playing-artist').innerText = artist;
+        document.getElementById('time-total').innerText = formatTime(audioBuffer.duration);
+        log(`✓ Audio ready: "${title}" (${audioBuffer.duration.toFixed(1)}s @ ${audioBuffer.sampleRate}Hz)`, true, 'room-logs');
+        return audioBuffer;
+      } catch (err) {
+        log('⚠ Failed loading track: ' + err.message, false, 'room-logs');
+        // Don't fall back to synth if we had a real track before
+        if (!audioBuffer) {
+          log('Using deterministic fallback beat', false, 'room-logs');
+          generateSynthGroove();
+        }
+        return audioBuffer;
+      } finally {
+        _loadAudioPromise = null;
+      }
+    }
+
+    // High precision deterministic synth fallback (Zero random values)
+    function generateSynthGroove() {
+      const ctx = getAudioContext();
+      const sampleRate = ctx.sampleRate || 44100;
+      const duration = 30; // 30s
+      const buffer = ctx.createBuffer(2, sampleRate * duration, sampleRate);
+      const left = buffer.getChannelData(0);
+      const right = buffer.getChannelData(1);
+
+      const bpm = 128;
+      const beatDur = 60 / bpm;
+
+      for (let i = 0; i < buffer.length; i++) {
+        const t = i / sampleRate;
+        const beatTime = t % beatDur;
+        const beatIdx = Math.floor(t / beatDur);
+
+        // Kick
+        let kick = 0;
+        if (beatTime < 0.2) {
+          const freq = 150 * Math.exp(-beatTime * 25) + 45;
+          kick = Math.sin(2 * Math.PI * freq * beatTime) * Math.exp(-beatTime * 15) * 0.7;
+        }
+
+        // Snare on 2 & 4
+        let snare = 0;
+        if (beatIdx % 2 === 1 && beatTime < 0.15) {
+          const snareNoise = Math.sin(i * 1234.56) * Math.exp(-beatTime * 30) * 0.35;
+          snare = snareNoise;
+        }
+
+        // Bass
+        const bass = Math.sin(2 * Math.PI * 55 * t) * 0.25;
+
+        left[i] = Math.max(-1, Math.min(1, kick + snare + bass));
+        right[i] = Math.max(-1, Math.min(1, kick + snare + bass));
+      }
+      audioBuffer = buffer;
+      document.getElementById('now-playing-title').innerText = 'Synthesized Beat';
+      document.getElementById('now-playing-artist').innerText = 'RoomBeat Audio Engine';
+      document.getElementById('time-total').innerText = formatTime(30);
+      return buffer;
+    }
+
+    // Auto-authenticate on load
+    async function ensureSession(name = 'User') {
+      if (authToken && currentSession) return authToken;
+
+      const deviceId = 'web-' + Math.random().toString(36).substring(2, 9);
+      document.getElementById('device-id-tag').innerText = deviceId;
+
+      try {
+        const res = await fetch('/api/v1/sessions/guest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            displayName: name,
+            deviceId,
+            deviceName: navigator.userAgent.includes('Mobile') ? 'Mobile Phone' : 'Mac/PC Browser',
+            platform: 'web'
+          })
+        });
+
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Session creation failed');
+
+        currentSession = data.data.session;
+        authToken = data.data.token;
+
+        setupSocket(authToken);
+        log('Session authenticated: ' + currentSession.displayName);
+        document.getElementById('home-status-badge').innerText = 'Ready';
+        return authToken;
+      } catch (err) {
+        log('Auth error: ' + err.message, false);
+        throw err;
+      }
+    }
+
+    function setupSocket(token) {
+      if (socket && socket.connected) return;
+
+      socket = io({
+        auth: { token },
+        transports: ['websocket', 'polling']
+      });
+
+      socket.on('connect', () => {
+        document.getElementById('connection-status').innerText = '● Connected';
+        document.getElementById('connection-status').style.color = 'var(--success)';
+        log('Socket.IO connected (' + socket.id.slice(0, 5) + ')');
+
+        // Always re-join active room upon connect / reconnect so socket room is never lost
+        if (currentRoom && currentRoom.id) {
+          socket.emit('room:join', { roomId: currentRoom.id });
+          log('Re-joined room: ' + currentRoom.code);
+        }
+
+        // Start NTP pings
+        startClockSync();
+      });
+
+      socket.on('disconnect', () => {
+        document.getElementById('connection-status').innerText = '● Disconnected';
+        document.getElementById('connection-status').style.color = 'var(--error)';
+      });
+
+      socket.on('clock:pong', (data) => {
+        const clientRecv = Date.now();
+        const sampleRtt = Math.max(0, clientRecv - data.clientSendTime);
+        const sampleOffset = ((data.serverReceiveTime - data.clientSendTime) + (data.serverSendTime - clientRecv)) / 2;
+
+        ntpSamples.push({ rtt: sampleRtt, offset: sampleOffset });
+        if (ntpSamples.length > 10) ntpSamples.shift();
+
+        // Best 60% lowest RTT (reject network spikes)
+        const sorted = [...ntpSamples].sort((a, b) => a.rtt - b.rtt);
+        const validCount = Math.max(1, Math.ceil(sorted.length * 0.6));
+        const bestOffsets = sorted.slice(0, validCount).map(s => s.offset).sort((a, b) => a - b);
+        clockOffset = bestOffsets[Math.floor(bestOffsets.length / 2)];
+        rtt = sorted[0].rtt;
+
+        updateSyncDisplay();
+      });
+
+      // Synchronized Track Preparation (triggered when Host uploads or queues a track)
+      socket.on('playback:prepare', async (data) => {
+        log(`📡 Receiving shared track: "${data.title}" by ${data.artist}`, true, 'room-logs');
+        // Clear existing buffer so the new track is loaded fresh
+        audioBuffer = null;
+        _loadedAudioUrl = null;
+        _loadAudioPromise = null;
+        await loadAudioFromUrl(data.trackUrl, data.title, data.artist);
+      });
+
+      // Synchronized Master Volume command across all devices
+      socket.on('playback:volume', (data) => {
+        if (!data || typeof data.volume !== 'number') return;
+        const volPct = Math.round(data.volume * 100);
+        const slider = document.getElementById('room-volume-slider');
+        if (slider) slider.value = volPct;
+        const badge = document.getElementById('volume-val-badge');
+        if (badge) badge.innerText = volPct + '%';
+        const icon = document.getElementById('volume-icon');
+        if (icon) icon.innerText = volPct === 0 ? '🔇' : volPct < 40 ? '🔉' : '🔊';
+
+        roomVolume = data.volume;
+        if (audioCtx && gainNode) {
+          gainNode.gain.setTargetAtTime(roomVolume, audioCtx.currentTime, 0.03);
+        }
+        if (data.senderId !== (currentSession && currentSession.id)) {
+          log(`🔊 Master volume synced: ${volPct}% (${data.senderName || 'Room'})`, true, 'room-logs');
+        }
+      });
+
+      // Synchronized Playback command from host
+      socket.on('playback:scheduled', (data) => {
+        log('Received synced play command! Start: ' + data.startAtServerEpochMs, true, 'room-logs');
+        handleScheduledPlay(data.startAtServerEpochMs, data.positionMs || 0);
+      });
+
+      socket.on('playback:pause', (data) => {
+        handlePause(data.positionMs);
+      });
+
+      socket.on('playback:seek', (data) => {
+        handleSeek(data.positionMs);
+      });
+
+      socket.on('room:joined', (data) => {
+        if (data && data.members && Array.isArray(data.members)) {
+          data.members.forEach(m => {
+            if (m.session && m.session.id !== (currentSession && currentSession.id)) {
+              addSpeakerRow({
+                sessionId: m.session.id,
+                displayName: m.session.displayName,
+                deviceName: m.session.deviceName,
+                role: m.role
+              });
+            }
+          });
+        }
+        // If room is already playing, sync and play immediately
+        if (data && data.playbackState && data.playbackState.status === 'playing' && data.playbackState.serverStartAt) {
+          const startAtEpoch = Number(data.playbackState.serverStartAt);
+          log('Room is actively playing! Joining in sync...', true, 'room-logs');
+          handleScheduledPlay(startAtEpoch, data.playbackState.positionMs || 0);
+        }
+      });
+
+      socket.on('room:device:joined', (data) => {
+        addSpeakerRow(data);
+      });
+
+      socket.on('room:device:left', (data) => {
+        removeSpeakerRow(data.sessionId);
+      });
+    }
+
+    function startClockSync() {
+      let count = 0;
+      // High-frequency warmup burst for rapid convergence on true NTP clock offset
+      const burst = setInterval(() => {
+        if (socket && socket.connected) {
+          socket.emit('clock:ping', { clientSendTime: Date.now() });
+        }
+        count++;
+        if (count >= 10) clearInterval(burst);
+      }, 150);
+
+      // Periodic ping every 4s to track clock drift
+      setInterval(() => {
+        if (socket && socket.connected) {
+          socket.emit('clock:ping', { clientSendTime: Date.now() });
+        }
+      }, 4000);
+    }
+
+    function updateSyncDisplay() {
+      const offsetEl = document.getElementById('sync-offset');
+      const rttEl = document.getElementById('sync-rtt');
+      const driftEl = document.getElementById('sync-drift');
+      if (offsetEl) offsetEl.innerText = (clockOffset > 0 ? '+' : '') + Math.round(clockOffset) + ' ms';
+      if (rttEl) rttEl.innerText = Math.round(rtt) + ' ms';
+      if (driftEl) driftEl.innerText = '± ' + Math.max(1, Math.round(rtt / 4)) + ' ms';
+    }
+
+    // CREATE ROOM BUTTON ACTION
+    async function handleCreateRoomClick() {
+      const btn = document.getElementById('btn-create-room');
+      if (btn) {
+        btn.innerText = '⏳ Creating Room...';
+        btn.disabled = true;
+      }
+
+      try {
+        // Just warm up AudioContext on user gesture (mobile requirement)
+        try { getAudioContext(); } catch (audioErr) { }
+
+        const token = await ensureSession('Host');
+
+        const res = await fetch('/api/v1/rooms', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({
+            name: 'RoomBeat Session',
+            maxDevices: 10,
+            isPrivate: false
+          })
+        });
+
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Room creation failed');
+
+        currentRoom = data.data;
+        isHost = true;
+
+        if (socket) {
+          socket.emit('room:join', { roomId: currentRoom.id });
+        }
+
+        enterRoom();
+      } catch (err) {
+        console.error('Create room error:', err);
+        alert('Could not create room: ' + err.message);
+        if (btn) {
+          btn.innerText = '👑 Create Room Now';
+          btn.disabled = false;
+        }
+      }
+    }
+
+    // JOIN ROOM BUTTON ACTION
+    async function handleJoinRoomClick() {
+      const input = document.getElementById('input-join-code-quick');
+      const code = input.value.trim().toUpperCase();
+
+      if (!code || code.length < 4) {
+        alert('Please enter a valid 6-character room code (e.g. from Host screen)');
+        input.focus();
+        return;
+      }
+
+      const btn = document.getElementById('btn-join-room');
+      btn.innerText = 'Joining...';
+      btn.disabled = true;
+
+      try {
+        // Just warm up AudioContext on user gesture (mobile requirement)
+        try { getAudioContext(); } catch (audioErr) { }
+
+        const token = await ensureSession('Speaker');
+
+        const res = await fetch('/api/v1/rooms/join', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify({ code })
+        });
+
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Room not found. Check code.');
+
+        // Defensive extraction: data.data.room OR data.data
+        currentRoom = data.data?.room || data.data;
+        isHost = false;
+
+        if (socket) {
+          socket.emit('room:join', { roomId: currentRoom.id });
+        }
+
+        enterRoom();
+      } catch (err) {
+        console.error('Join error:', err);
+        alert('Join failed: ' + err.message);
+        btn.innerText = 'Join Room';
+        btn.disabled = false;
+      }
+    }
+
+    function enterRoom() {
+      document.getElementById('dash-room-name').innerText = currentRoom.name;
+      document.getElementById('dash-room-code').innerText = 'ROOM CODE: ' + currentRoom.code;
+
+      const playBtn = document.getElementById('main-play-btn');
+      if (playBtn) {
+        playBtn.innerText = isPlaying ? '⏸' : '▶';
+        playBtn.style.background = isPlaying ? 'var(--text)' : 'var(--primary)';
+      }
+
+      updateCalibrationUI();
+      const slider = document.getElementById('room-volume-slider');
+      if (slider) slider.value = Math.round(roomVolume * 100);
+      const badge = document.getElementById('volume-val-badge');
+      if (badge) badge.innerText = Math.round(roomVolume * 100) + '%';
+
+      renderSpeakerList();
+      showScreen('screen-room');
+      log('Entered Room: ' + currentRoom.code + (isHost ? ' (Host)' : ' (Speaker)'), true, 'room-logs');
+
+      // ALWAYS load the shared demo track so both Host and Speaker have identical audio
+      loadAudioFromUrl('/demo.wav', 'Electronic Dance Beat (128 BPM)', 'RoomBeat Demo Audio');
+    }
+
+    // Hardware Latency Fine-Tune Calibration
+    function nudgeCalibration(delta) {
+      userCalibrationMs = Math.max(-100, Math.min(100, userCalibrationMs + delta));
+      updateCalibrationUI();
+    }
+    function onCalibrationChange(val) {
+      userCalibrationMs = parseInt(val, 10);
+      updateCalibrationUI();
+    }
+    function updateCalibrationUI() {
+      const el = document.getElementById('calib-val');
+      if (el) el.innerText = (userCalibrationMs > 0 ? '+' : '') + userCalibrationMs + ' ms';
+      const slider = document.getElementById('calib-slider');
+      if (slider) slider.value = userCalibrationMs;
+      try { localStorage.setItem('roombeat_calib', userCalibrationMs); } catch(e) {}
+    }
+
+    // Master Volume Synchronization
+    function handleVolumeChange(val, emitSocket = true) {
+      const numVal = parseInt(val, 10);
+      roomVolume = Math.max(0, Math.min(1, numVal / 100));
+      const badge = document.getElementById('volume-val-badge');
+      if (badge) badge.innerText = numVal + '%';
+      const icon = document.getElementById('volume-icon');
+      if (icon) icon.innerText = numVal === 0 ? '🔇' : numVal < 40 ? '🔉' : '🔊';
+
+      if (audioCtx && gainNode) {
+        gainNode.gain.setTargetAtTime(roomVolume, audioCtx.currentTime, 0.02);
+      }
+
+      if (emitSocket && socket && currentRoom) {
+        socket.emit('playback:volume', {
+          roomId: currentRoom.id,
+          volume: roomVolume
+        });
+      }
+    }
+
+    function renderSpeakerList() {
+      const list = document.getElementById('speakers-list');
+      list.innerHTML = `
+        <div class="device-row">
+          <div class="device-info">
+            <span class="device-icon">${isHost ? '👑' : '📱'}</span>
+            <div>
+              <div class="device-name">${currentSession ? currentSession.displayName : 'This Device'} ${isHost ? '(Host)' : ''}</div>
+              <div class="device-meta">${currentSession ? currentSession.deviceName : 'Web'} • Ready</div>
+            </div>
+          </div>
+          <span class="badge badge-success">Online</span>
+        </div>
+      `;
+    }
+
+    function addSpeakerRow(data) {
+      const list = document.getElementById('speakers-list');
+      const existing = document.getElementById('speaker-' + data.sessionId);
+      if (existing) return;
+
+      const item = document.createElement('div');
+      item.className = 'device-row';
+      item.id = 'speaker-' + data.sessionId;
+      item.innerHTML = `
+        <div class="device-info">
+          <span class="device-icon">📱</span>
+          <div>
+            <div class="device-name">${data.displayName}</div>
+            <div class="device-meta">${data.deviceName} • Speaker</div>
+          </div>
+        </div>
+        <span class="badge badge-success">Online</span>
+      `;
+      list.appendChild(item);
+      document.getElementById('speaker-count').innerText = document.querySelectorAll('.device-row').length + ' speakers';
+      log('Speaker joined: ' + data.displayName, true, 'room-logs');
+    }
+
+    function removeSpeakerRow(sessionId) {
+      const el = document.getElementById('speaker-' + sessionId);
+      if (el) el.remove();
+      document.getElementById('speaker-count').innerText = document.querySelectorAll('.device-row').length + ' speakers';
+    }
+
+    // Synchronized Audio Controls (Works from both Host and Speaker phones)
+    function togglePlay() {
+      const ctx = getAudioContext();
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+
+      if (!currentRoom) {
+        alert('Please create or join a room first!');
+        return;
+      }
+
+      if (isPlaying) {
+        socket.emit('host:playback:pause', { roomId: currentRoom.id });
+      } else {
+        log('Broadcasting play command to all devices...', true, 'room-logs');
+        socket.emit('host:playback:play', {
+          roomId: currentRoom.id,
+          positionMs: pauseOffset * 1000,
+          delayMs: 2000
+        });
+      }
+    }
+
+    async function handleScheduledPlay(startAtServerEpochMs, startPositionMs) {
+      const ctx = getAudioContext();
+      if (ctx.state === 'suspended') {
+        try { await ctx.resume(); } catch (e) {}
+      }
+
+      // Wait for any in-progress audio download to finish
+      if (_loadAudioPromise) {
+        log('Waiting for track download to complete...', true, 'room-logs');
+        await _loadAudioPromise;
+      }
+
+      // If STILL no buffer (download failed entirely), load demo as last resort
+      if (!audioBuffer) {
+        log('No audio buffer available, loading demo track...', false, 'room-logs');
+        await loadAudioFromUrl('/demo.wav', 'Demo Beat', 'RoomBeat');
+      }
+
+      // Hardware output latency compensation & user calibration
+      const hwLatencySec = (ctx.outputLatency || 0) + (ctx.baseLatency || 0);
+      const userCalibSec = (userCalibrationMs || 0) / 1000;
+
+      // Canonical server time now
+      const serverNow = Date.now() + clockOffset;
+      const rawDelayMs = startAtServerEpochMs - serverNow;
+      // Net delay: subtract device hardware output latency and apply fine-tune nudge
+      const delaySec = (rawDelayMs / 1000) - hwLatencySec + userCalibSec;
+
+      log(`[Sync Engine] Start in ${Math.round(rawDelayMs)}ms (HW Delay: ${Math.round(hwLatencySec * 1000)}ms, Calib: ${(userCalibrationMs > 0 ? '+' : '') + userCalibrationMs}ms, RTT: ${Math.round(rtt)}ms)`, true, 'room-logs');
+
+      if (audioSource) {
+        try { audioSource.stop(); } catch(e) {}
+      }
+
+      audioSource = ctx.createBufferSource();
+      audioSource.buffer = audioBuffer;
+      // Connect through Master Gain Node for synchronized volume
+      audioSource.connect(gainNode || ctx.destination);
+
+      let targetCtxTime;
+      let offsetSec = (startPositionMs || 0) / 1000;
+
+      if (delaySec > 0.02) {
+        // Schedule accurately into the future
+        targetCtxTime = ctx.currentTime + delaySec;
+      } else {
+        // Late arrival catch-up: advance offset into track
+        const catchup = Math.abs(delaySec);
+        offsetSec += catchup;
+        targetCtxTime = ctx.currentTime;
+      }
+
+      try {
+        audioSource.start(targetCtxTime, Math.max(0, offsetSec));
+        playbackStartTime = targetCtxTime - offsetSec;
+        isPlaying = true;
+
+        const playBtn = document.getElementById('main-play-btn');
+        if (playBtn) {
+          playBtn.innerText = '⏸';
+          playBtn.style.background = 'var(--text)';
+        }
+        startProgressBar();
+        log(`▶ Playing "${document.getElementById('now-playing-title').innerText}" in sync!`, true, 'room-logs');
+      } catch (playErr) {
+        log('Playback start error: ' + playErr.message, false, 'room-logs');
+      }
+    }
+
+    function handlePause(positionMs) {
+      if (audioSource) {
+        try { audioSource.stop(); } catch(e) {}
+      }
+      isPlaying = false;
+      pauseOffset = positionMs ? positionMs / 1000 : 0;
+      const playBtn = document.getElementById('main-play-btn');
+      if (playBtn) {
+        playBtn.innerText = '▶';
+        playBtn.style.background = 'var(--primary)';
+      }
+      if (animFrame) cancelAnimationFrame(animFrame);
+      log('Playback paused at ' + pauseOffset.toFixed(1) + 's', true, 'room-logs');
+    }
+
+    function handleSeek(positionMs) {
+      pauseOffset = positionMs / 1000;
+      if (isPlaying) {
+        handleScheduledPlay(Date.now() + clockOffset + 100, positionMs);
+      } else {
+        document.getElementById('time-current').innerText = formatTime(pauseOffset);
+      }
+    }
+
+    function handleProgressBarClick(e) {
+      if (!currentRoom) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const total = audioBuffer ? audioBuffer.duration : 30;
+      const posMs = pct * total * 1000;
+      socket.emit('host:playback:seek', { roomId: currentRoom.id, positionMs: posMs });
+    }
+
+    function startProgressBar() {
+      if (animFrame) cancelAnimationFrame(animFrame);
+      function tick() {
+        if (isPlaying && audioCtx && audioBuffer) {
+          const current = Math.max(0, audioCtx.currentTime - playbackStartTime);
+          const total = audioBuffer.duration;
+          const pct = Math.min(100, (current / total) * 100);
+
+          document.getElementById('progress-fill').style.width = pct + '%';
+          document.getElementById('time-current').innerText = formatTime(current);
+          document.getElementById('time-total').innerText = formatTime(total);
+
+          if (current >= total) {
+            isPlaying = false;
+            const playBtn = document.getElementById('main-play-btn');
+            if (playBtn) {
+              playBtn.innerText = '▶';
+              playBtn.style.background = 'var(--primary)';
+            }
+          }
+        }
+        if (isPlaying) animFrame = requestAnimationFrame(tick);
+      }
+      animFrame = requestAnimationFrame(tick);
+    }
+
+    // OPTION 1: Load file locally directly on this device (Instant, no upload/download waiting)
+    async function handleLocalFileLoad(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const ctx = getAudioContext();
+      if (ctx.state === 'suspended') {
+        try { await ctx.resume(); } catch(err) {}
+      }
+
+      const title = file.name.replace(/\.[^/.]+$/, "");
+      log(`⚡ Decoding local file: "${title}"...`, true, 'room-logs');
+      document.getElementById('now-playing-title').innerText = '⏳ Decoding Local File...';
+      document.getElementById('now-playing-artist').innerText = title;
+
+      const reader = new FileReader();
+      reader.onload = async function(evt) {
+        try {
+          const arrayBuf = evt.target.result;
+          const decoded = await new Promise((resolve, reject) => {
+            ctx.decodeAudioData(arrayBuf.slice(0), resolve, reject);
+          });
+          audioBuffer = decoded;
+          _loadedAudioUrl = 'local:' + title;
+          _loadAudioPromise = null;
+
+          document.getElementById('now-playing-title').innerText = title;
+          document.getElementById('now-playing-artist').innerText = 'Local Audio (' + (isHost ? 'Host' : 'Speaker') + ')';
+          document.getElementById('time-total').innerText = formatTime(audioBuffer.duration);
+          log(`✓ Ready: "${title}" (${audioBuffer.duration.toFixed(1)}s)`, true, 'room-logs');
+
+          // If the room is already playing on another phone/host, sync into it immediately!
+          if (currentRoom && authToken) {
+            try {
+              const res = await fetch('/api/v1/rooms/' + currentRoom.id, {
+                headers: { 'Authorization': 'Bearer ' + authToken }
+              });
+              const rData = await res.json();
+              const ps = rData.data?.playbackState;
+              if (ps && ps.status === 'playing' && ps.serverStartAt) {
+                log('Room is actively playing! Joining in sync...', true, 'room-logs');
+                handleScheduledPlay(Number(ps.serverStartAt), ps.positionMs || 0);
+              }
+            } catch (e) {}
+          }
+        } catch (err) {
+          console.error('Error decoding local audio:', err);
+          alert('Could not decode audio file: ' + err.message);
+          log('Error decoding audio: ' + err.message, false, 'room-logs');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // OPTION 2: Anyone (Host or Member) uploads audio to room server to broadcast to all devices
+    async function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file || !currentRoom) return;
+
+      const title = file.name.replace(/\.[^/.]+$/, "");
+      log(`⬆ Uploading "${title}" to room server...`, true, 'room-logs');
+      document.getElementById('now-playing-title').innerText = '⏳ Uploading to Room...';
+      document.getElementById('now-playing-artist').innerText = title;
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('title', title);
+        formData.append('artist', currentSession ? currentSession.displayName : (isHost ? 'Host' : 'Speaker'));
+
+        const token = authToken || (await ensureSession(isHost ? 'Host' : 'Speaker'));
+        const res = await fetch('/api/v1/rooms/' + currentRoom.id + '/tracks', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token },
+          body: formData
+        });
+
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || 'Upload failed');
+
+        const track = data.data;
+        log('✓ Uploaded "' + track.title + '"! Syncing across all devices...', true, 'room-logs');
+
+        // Clear local buffer so when playback:prepare broadcasts, this device also reloads the exact server track
+        audioBuffer = null;
+        _loadedAudioUrl = null;
+        _loadAudioPromise = null;
+
+        // Broadcast prepare to all room devices so everyone loads identical track
+        if (socket) {
+          socket.emit('host:playback:prepare', {
+            roomId: currentRoom.id,
+            trackId: track.id
+          });
+        }
+      } catch (err) {
+        console.error('Track upload error:', err);
+        alert('Could not upload audio to room: ' + err.message);
+        log('Upload failed: ' + err.message, false, 'room-logs');
+      }
+    }
+
+    function triggerRestart() {
+      if (socket && currentRoom) {
+        socket.emit('host:playback:seek', { roomId: currentRoom.id, positionMs: 0 });
+      }
+    }
+    function triggerNext() {
+      if (socket && currentRoom) {
+        socket.emit('host:playback:next', { roomId: currentRoom.id });
+      }
+    }
+    function leaveRoom() {
+      if (socket) socket.disconnect();
+      location.reload();
+    }
+
+    // Auto-init on page load and bind listeners
+    window.addEventListener('DOMContentLoaded', () => {
+      // Audio context unlock on any user tap/click
+      ['click', 'touchstart', 'pointerdown'].forEach(evt => {
+        window.addEventListener(evt, () => {
+          if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume().catch(() => {});
+          }
+        }, { passive: true });
+      });
+
+      const createBtn = document.getElementById('btn-create-room');
+      if (createBtn) {
+        createBtn.addEventListener('click', handleCreateRoomClick);
+      }
+      const joinBtn = document.getElementById('btn-join-room');
+      if (joinBtn) {
+        joinBtn.addEventListener('click', handleJoinRoomClick);
+      }
+      ensureSession().catch((e) => console.log('Init session:', e.message));
+    });
+  </script>
+</body>
+</html>

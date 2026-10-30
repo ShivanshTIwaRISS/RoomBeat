@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const sync_controller_1 = require("../controllers/sync.controller");
+const auth_1 = require("../middleware/auth");
+const validate_1 = require("../middleware/validate");
+const sync_validators_1 = require("../validators/sync.validators");
+const router = (0, express_1.Router)();
+router.post('/:roomId/sync/report', auth_1.authenticate, (0, validate_1.validate)(sync_validators_1.submitSyncReportSchema), sync_controller_1.submitSyncReport);
+router.get('/:roomId/sync/report', auth_1.authenticate, sync_controller_1.getRoomSyncReports);
+router.patch('/:roomId/devices/:deviceId/settings', auth_1.authenticate, sync_controller_1.updateDeviceSettings);
+exports.default = router;
