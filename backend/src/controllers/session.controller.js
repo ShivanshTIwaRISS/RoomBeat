@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.endSession = exports.getCurrentSession = exports.createGuestSession = void 0;
+exports.endSession = exports.updateDisplayName = exports.getCurrentSession = exports.createGuestSession = void 0;
 const session_service_1 = require("../services/session.service");
 const response_1 = require("../utils/response");
 const createGuestSession = async (req, res) => {
@@ -26,6 +26,23 @@ const getCurrentSession = async (req, res) => {
     }
 };
 exports.getCurrentSession = getCurrentSession;
+const updateDisplayName = async (req, res) => {
+    try {
+        if (!req.session) {
+            return (0, response_1.sendError)(res, 'Unauthorized', 'UNAUTHORIZED', 401);
+        }
+        const { displayName } = req.body;
+        if (!displayName || typeof displayName !== 'string' || displayName.trim().length < 1) {
+            return (0, response_1.sendError)(res, 'displayName is required', 'VALIDATION_ERROR', 400);
+        }
+        const session = await session_service_1.sessionService.updateSession(req.session.id, displayName.trim().slice(0, 30));
+        return (0, response_1.sendSuccess)(res, session, 'Display name updated successfully');
+    }
+    catch (err) {
+        return (0, response_1.sendError)(res, err.message || 'Failed to update display name', err.code || 'SESSION_ERROR', err.statusCode || 500);
+    }
+};
+exports.updateDisplayName = updateDisplayName;
 const endSession = async (req, res) => {
     try {
         if (!req.session) {
@@ -39,3 +56,4 @@ const endSession = async (req, res) => {
     }
 };
 exports.endSession = endSession;
+

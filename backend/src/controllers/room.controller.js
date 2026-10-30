@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.closeRoom = exports.transferHost = exports.updateRoomSettings = exports.getRoomDevices = exports.leaveRoom = exports.joinRoom = exports.getRoomByCode = exports.getRoom = exports.createRoom = void 0;
+exports.closeRoom = exports.transferHost = exports.updateRoomSettings = exports.getRoomDevices = exports.leaveRoom = exports.joinRoom = exports.getRoomByCode = exports.getRoom = exports.getMyRooms = exports.createRoom = void 0;
 const room_service_1 = require("../services/room.service");
 const response_1 = require("../utils/response");
 const createRoom = async (req, res) => {
@@ -15,6 +15,18 @@ const createRoom = async (req, res) => {
     }
 };
 exports.createRoom = createRoom;
+const getMyRooms = async (req, res) => {
+    try {
+        if (!req.session)
+            return (0, response_1.sendError)(res, 'Unauthorized', 'UNAUTHORIZED', 401);
+        const rooms = await room_service_1.roomService.getSessionRooms(req.session.id);
+        return (0, response_1.sendSuccess)(res, rooms, 'User rooms retrieved successfully');
+    }
+    catch (err) {
+        return (0, response_1.sendError)(res, err.message, err.code || 'ROOM_ERROR', err.statusCode || 500);
+    }
+};
+exports.getMyRooms = getMyRooms;
 const getRoom = async (req, res) => {
     try {
         const room = await room_service_1.roomService.getRoom(req.params.roomId);
