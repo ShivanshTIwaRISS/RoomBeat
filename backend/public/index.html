@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>RoomBeat — Synchronized Wireless Speaker System</title>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
   <style>
     :root {
       --bg: #0D0D0F;
@@ -429,6 +430,12 @@
     let systemAudioSource = null;
     let streamAudioProcessor = null;
     let streamPlayTime = 0;
+    let streamJitterBuffer = [];
+    let isStreamBuffering = true;
+    let streamSampleRate = 44100;
+    let ytPlayer = null;
+    let ytSyncInterval = null;
+    let isYtReady = false;
     let _loadAudioPromise = null;
     let _loadedAudioUrl = null;
 
@@ -545,6 +552,7 @@
     }
 
     async function _doLoadAudio(url, title, artist) {
+      cleanupYouTube();
       const ctx = getAudioContext();
       try {
         log('⬇ Downloading: ' + title, true, 'room-logs');
@@ -755,14 +763,17 @@
         toast('⚠ ' + data.message, 'error');
       });
 
-      // ---- LIVE AUDIO STREAM (BROADCAST FROM HOST) ----
+      // ---- LIVE AUDIO STREAM (BROADCAST FROM HOST) WITH JITTER BUFFER ----
       socket.on('stream:audio:start', (data) => {
         log(`🔴 Incoming Live Audio from ${data.senderName || 'Host'}`, true, 'room-logs');
         toast(`🔴 Live broadcast: ${data.title}`, 'info');
         document.getElementById('now-playing-title').innerText = '🔴 ' + (data.title || 'Live Broadcast');
         document.getElementById('now-playing-artist').innerText = 'Streaming from ' + (data.senderName || 'Host');
         const ctx = getAudioContext();
-        streamPlayTime = ctx.currentTime + 0.12;
+        streamSampleRate = data.sampleRate || ctx.sampleRate || 44100;
+        streamJitterBuffer = [];
+        isStreamBuffering = true;
+        streamPlayTime = 0;
         isPlaying = true;
         const playBtn = document.getElementById('main-play-btn');
         if (playBtn) { playBtn.innerText = '🔴'; playBtn.style.background = 'var(--text)'; }
@@ -777,35 +788,100 @@
         for (let i = 0; i < int16Array.length; i++) {
           floatArray[i] = int16Array[i] / 32768;
         }
-        const buf = ctx.createBuffer(1, floatArray.length, data.sampleRate || 44100);
+        const sampleRate = data.sampleRate || streamSampleRate || 44100;
+        const buf = ctx.createBuffer(1, floatArray.length, sampleRate);
         buf.copyToChannel(floatArray, 0);
-        const src = ctx.createBufferSource();
-        src.buffer = buf;
-        src.connect(gainNode || ctx.destination);
-        const now = ctx.currentTime;
-        if (streamPlayTime < now) {
-          streamPlayTime = now + 0.05;
+
+        if (isStreamBuffering) {
+          streamJitterBuffer.push(buf);
+          // Buffer ~180ms before scheduling to absorb network jitter
+          if (streamJitterBuffer.length >= 2) {
+            isStreamBuffering = false;
+            streamPlayTime = ctx.currentTime + 0.08;
+            while (streamJitterBuffer.length > 0) {
+              const b = streamJitterBuffer.shift();
+              playScheduledStreamChunk(ctx, b);
+            }
+          }
+          return;
         }
-        try {
-          src.start(streamPlayTime);
-          streamPlayTime += buf.duration;
-        } catch (e) {}
+
+        playScheduledStreamChunk(ctx, buf);
       });
 
       socket.on('stream:audio:stop', () => {
         toast('⏹ Live broadcast ended', 'info');
         stopVisualizer();
         isPlaying = false;
+        streamJitterBuffer = [];
+        isStreamBuffering = true;
         const playBtn = document.getElementById('main-play-btn');
         if (playBtn) { playBtn.innerText = '▶'; playBtn.style.background = 'var(--primary)'; }
         document.getElementById('now-playing-title').innerText = 'Synchronized Beat';
         document.getElementById('now-playing-artist').innerText = 'RoomBeat Audio Engine';
       });
 
+      // ---- SYNCHRONIZED YOUTUBE VIDEO PLAYBACK ----
       socket.on('playback:youtube', (data) => {
         log(`▶ Received YouTube track from ${data.senderName || 'Room'}`, true, 'room-logs');
-        loadYouTubeVideo(data.videoId, data.title);
+        loadYouTubeVideo(data.videoId, data.title, data.startAtServerEpochMs, data.positionSec || 0);
       });
+
+      socket.on('playback:youtube:sync', (data) => {
+        if (isHost || !ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
+        try {
+          const speakerTime = ytPlayer.getCurrentTime();
+          const netDelaySec = Number.isFinite(rtt) ? (rtt / 2000) : 0.03;
+          const hostTime = data.currentTime + netDelaySec;
+          const drift = hostTime - speakerTime;
+
+          // Only realign when drift is noticeably off (> 0.8s) to avoid micro-stutter / pitch warping
+          if (Math.abs(drift) > 0.8) {
+            log(`[YouTube Sync] Drift: ${drift > 0 ? '+' : ''}${drift.toFixed(2)}s — aligning to host`, true, 'room-logs');
+            ytPlayer.seekTo(hostTime, true);
+          }
+          // Strict 1.0x playback rate — prevent audio wobble / pitch distortion
+          if (typeof ytPlayer.getPlaybackRate === 'function' && ytPlayer.getPlaybackRate() !== 1) {
+            ytPlayer.setPlaybackRate(1);
+          }
+        } catch(e) {}
+      });
+
+      socket.on('playback:youtube:control', (data) => {
+        if (!ytPlayer) return;
+        try {
+          if (data.action === 'play') {
+            scheduleYouTubeStart(ytPlayer, data.startAtServerEpochMs, data.positionSec || 0);
+          } else if (data.action === 'pause') {
+            if (typeof ytPlayer.pauseVideo === 'function') ytPlayer.pauseVideo();
+            if (typeof ytPlayer.seekTo === 'function' && Number.isFinite(data.positionSec)) {
+              ytPlayer.seekTo(data.positionSec, true);
+            }
+            isPlaying = false;
+            const playBtn = document.getElementById('main-play-btn');
+            if (playBtn) { playBtn.innerText = '▶'; playBtn.style.background = 'var(--primary)'; }
+          } else if (data.action === 'seek') {
+            if (typeof ytPlayer.seekTo === 'function') ytPlayer.seekTo(data.positionSec || 0, true);
+          }
+        } catch(e) {}
+      });
+    }
+
+    function playScheduledStreamChunk(ctx, buf) {
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(gainNode || ctx.destination);
+      const now = ctx.currentTime;
+      if (streamPlayTime < now) {
+        streamPlayTime = now + 0.02;
+      }
+      if (streamPlayTime > now + 0.35) {
+        streamPlayTime = now + 0.10;
+      }
+      try {
+        src.start(streamPlayTime);
+        streamPlayTime += buf.duration;
+      } catch (e) {}
     }
 
     // ============================================================
@@ -1089,8 +1165,9 @@
       }
       closeYouTubeModal();
       const title = 'YouTube Track (' + videoId + ')';
+      const safeClockOffset = Number.isFinite(clockOffset) ? clockOffset : 0;
+      const startAtServerEpochMs = Date.now() + safeClockOffset + 1500;
       if (socket && currentRoom) {
-        const startAtServerEpochMs = Date.now() + (Number.isFinite(clockOffset) ? clockOffset : 0) + 2000;
         socket.emit('playback:youtube', {
           roomId: currentRoom.id,
           videoId,
@@ -1099,19 +1176,136 @@
           positionSec: 0
         });
       }
-      loadYouTubeVideo(videoId, title);
+      loadYouTubeVideo(videoId, title, startAtServerEpochMs, 0);
     }
 
-    function loadYouTubeVideo(videoId, title) {
+    window.onYouTubeIframeAPIReady = function() {
+      isYtReady = true;
+    };
+
+    function cleanupYouTube() {
+      if (ytSyncInterval) { clearInterval(ytSyncInterval); ytSyncInterval = null; }
+      if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
+        try { ytPlayer.stopVideo(); } catch(e) {}
+      }
+      const box = document.getElementById('yt-player-box');
+      if (box) { box.style.display = 'none'; box.innerHTML = ''; }
+      ytPlayer = null;
+    }
+
+    function loadYouTubeVideo(videoId, title, startAtEpoch = 0, startPosSec = 0) {
       const box = document.getElementById('yt-player-box');
       if (!box) return;
       box.style.display = 'block';
-      box.innerHTML = `<iframe id="yt-iframe" width="100%" height="210" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:14px;border:none;"></iframe>`;
+
+      if (audioSource) { try { audioSource.stop(); } catch(e) {} }
+      isPlaying = false;
+
       document.getElementById('now-playing-title').innerText = title || 'YouTube Track';
-      document.getElementById('now-playing-artist').innerText = 'Synced YouTube Video';
+      document.getElementById('now-playing-artist').innerText = isHost ? 'YouTube Host' : 'YouTube Synced Speaker';
       toast('▶ Synced YouTube video with room!', 'success');
-      log(`▶ Playing YouTube track: "${videoId}"`, true, 'room-logs');
+      log(`▶ Synced YouTube: "${videoId}"`, true, 'room-logs');
       startVisualizer();
+
+      if (!window.YT || !window.YT.Player) {
+        box.innerHTML = `<iframe id="yt-iframe" width="100%" height="210" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:14px;border:none;"></iframe>`;
+        return;
+      }
+
+      if (!ytPlayer || typeof ytPlayer.loadVideoById !== 'function') {
+        box.innerHTML = '<div id="yt-player-target"></div>';
+        try {
+          ytPlayer = new YT.Player('yt-player-target', {
+            height: '210',
+            width: '100%',
+            videoId: videoId,
+            playerVars: {
+              autoplay: 1,
+              controls: 1,
+              modestbranding: 1,
+              rel: 0,
+              playsinline: 1
+            },
+            events: {
+              onReady: (event) => {
+                scheduleYouTubeStart(event.target, startAtEpoch, startPosSec);
+              },
+              onStateChange: (event) => {
+                if (event.data === YT.PlayerState.PLAYING) {
+                  isPlaying = true;
+                  const playBtn = document.getElementById('main-play-btn');
+                  if (playBtn) { playBtn.innerText = '⏸'; playBtn.style.background = 'var(--text)'; }
+                  if (isHost) startHostYtSyncLoop();
+                } else if (event.data === YT.PlayerState.PAUSED) {
+                  isPlaying = false;
+                  const playBtn = document.getElementById('main-play-btn');
+                  if (playBtn) { playBtn.innerText = '▶'; playBtn.style.background = 'var(--primary)'; }
+                }
+              }
+            }
+          });
+        } catch(e) {
+          box.innerHTML = `<iframe id="yt-iframe" width="100%" height="210" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:14px;border:none;"></iframe>`;
+        }
+      } else {
+        try {
+          ytPlayer.loadVideoById(videoId);
+          scheduleYouTubeStart(ytPlayer, startAtEpoch, startPosSec);
+        } catch(e) {
+          box.innerHTML = `<iframe id="yt-iframe" width="100%" height="210" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:14px;border:none;"></iframe>`;
+        }
+      }
+    }
+
+    function scheduleYouTubeStart(player, startAtEpoch, startPosSec = 0) {
+      if (!player) return;
+      if (!startAtEpoch) {
+        try {
+          if (startPosSec > 0 && typeof player.seekTo === 'function') player.seekTo(startPosSec, true);
+          if (typeof player.playVideo === 'function') player.playVideo();
+        } catch(e) {}
+        return;
+      }
+      const safeClockOffset = Number.isFinite(clockOffset) ? clockOffset : 0;
+      const serverNow = Date.now() + safeClockOffset;
+      const delayMs = startAtEpoch - serverNow;
+
+      if (delayMs > 60) {
+        try {
+          if (typeof player.seekTo === 'function') player.seekTo(startPosSec, true);
+          if (typeof player.pauseVideo === 'function') player.pauseVideo();
+        } catch(e) {}
+        setTimeout(() => {
+          try {
+            if (typeof player.seekTo === 'function') player.seekTo(startPosSec, true);
+            if (typeof player.playVideo === 'function') player.playVideo();
+          } catch(e) {}
+        }, delayMs);
+      } else {
+        const elapsedSec = Math.abs(delayMs) / 1000;
+        const targetPos = (startPosSec || 0) + elapsedSec;
+        try {
+          if (typeof player.seekTo === 'function') player.seekTo(targetPos, true);
+          if (typeof player.playVideo === 'function') player.playVideo();
+        } catch(e) {}
+      }
+    }
+
+    function startHostYtSyncLoop() {
+      if (ytSyncInterval) clearInterval(ytSyncInterval);
+      ytSyncInterval = setInterval(() => {
+        if (!isHost || !ytPlayer || !currentRoom || typeof ytPlayer.getCurrentTime !== 'function') return;
+        try {
+          const state = ytPlayer.getPlayerState();
+          if (state === YT.PlayerState.PLAYING) {
+            socket.emit('playback:youtube:sync', {
+              roomId: currentRoom.id,
+              currentTime: ytPlayer.getCurrentTime(),
+              isPlaying: true
+            });
+          }
+        } catch(e) {}
+      }, 3000);
     }
 
     // ============================================================
@@ -1224,6 +1418,27 @@
 
     function _doTogglePlay() {
       if (!currentRoom) { toast('Join a room first!', 'error'); return; }
+      if (ytPlayer && typeof ytPlayer.getPlayerState === 'function') {
+        try {
+          const state = ytPlayer.getPlayerState();
+          if (state === 1) { // 1 = YT.PlayerState.PLAYING
+            const currentPos = typeof ytPlayer.getCurrentTime === 'function' ? ytPlayer.getCurrentTime() : 0;
+            ytPlayer.pauseVideo();
+            if (socket && currentRoom) {
+              socket.emit('playback:youtube:control', { roomId: currentRoom.id, action: 'pause', positionSec: currentPos });
+            }
+          } else {
+            const currentPos = typeof ytPlayer.getCurrentTime === 'function' ? ytPlayer.getCurrentTime() : 0;
+            const safeClockOffset = Number.isFinite(clockOffset) ? clockOffset : 0;
+            const startAt = Date.now() + safeClockOffset + 800;
+            scheduleYouTubeStart(ytPlayer, startAt, currentPos);
+            if (socket && currentRoom) {
+              socket.emit('playback:youtube:control', { roomId: currentRoom.id, action: 'play', positionSec: currentPos, startAtServerEpochMs: startAt });
+            }
+          }
+          return;
+        } catch(e) {}
+      }
       if (isPlaying) {
         socket.emit('host:playback:pause', { roomId: currentRoom.id });
       } else {
@@ -1413,6 +1628,7 @@
     async function handleLocalFileLoad(e) {
       const file = e.target.files[0];
       if (!file) return;
+      cleanupYouTube();
       const ctx = getAudioContext();
       if (ctx.state === 'suspended') { try { await ctx.resume(); } catch(err) {} }
       const title = file.name.replace(/\.[^/.]+$/, '');
@@ -1633,12 +1849,18 @@
     // TRANSPORT
     // ============================================================
     function triggerRestart() {
+      if (ytPlayer && typeof ytPlayer.seekTo === 'function') {
+        ytPlayer.seekTo(0, true);
+        if (socket && currentRoom) socket.emit('playback:youtube:control', { roomId: currentRoom.id, action: 'seek', positionSec: 0 });
+        return;
+      }
       if (socket && currentRoom) socket.emit('host:playback:seek', { roomId: currentRoom.id, positionMs: 0 });
     }
     function triggerNext() {
       if (socket && currentRoom) socket.emit('host:playback:next', { roomId: currentRoom.id });
     }
     function leaveRoom() {
+      cleanupYouTube();
       try { localStorage.removeItem('roombeat_last_room'); } catch(e) {}
       if (audioSource) { try { audioSource.stop(); } catch(e) {} }
       isPlaying = false;
@@ -1665,7 +1887,18 @@
       // Unlock AudioContext on any touch/click
       ['click', 'touchstart', 'pointerdown'].forEach(evt => {
         window.addEventListener(evt, () => {
-          if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+          const ctx = getAudioContext();
+          if (ctx && ctx.state === 'suspended') {
+            ctx.resume().then(() => {
+              if (pendingScheduledPlay) {
+                const { startAtServerEpochMs, startPositionMs } = pendingScheduledPlay;
+                pendingScheduledPlay = null;
+                const banner = document.getElementById('tap-to-sync-banner');
+                if (banner) banner.style.display = 'none';
+                handleScheduledPlay(startAtServerEpochMs, startPositionMs);
+              }
+            }).catch(() => {});
+          }
         }, { passive: true });
       });
 

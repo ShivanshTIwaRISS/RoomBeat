@@ -192,5 +192,24 @@ const registerPlaybackHandlers = (io, socket) => {
             senderName: session.displayName,
         });
     });
+    socket.on('playback:youtube:sync', (data) => {
+        if (!session || !data.roomId)
+            return;
+        socket.to(data.roomId).emit('playback:youtube:sync', {
+            currentTime: data.currentTime,
+            isPlaying: data.isPlaying,
+            serverTimestamp: Date.now(),
+        });
+    });
+    socket.on('playback:youtube:control', (data) => {
+        if (!session || !data.roomId)
+            return;
+        socket.to(data.roomId).emit('playback:youtube:control', {
+            action: data.action,
+            positionSec: data.positionSec || 0,
+            startAtServerEpochMs: data.startAtServerEpochMs || Date.now(),
+            senderId: session.id,
+        });
+    });
 };
 exports.registerPlaybackHandlers = registerPlaybackHandlers;
