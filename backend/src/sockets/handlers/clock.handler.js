@@ -12,6 +12,7 @@ const registerClockHandlers = (socket) => {
             clientSendTime: data.clientSendTime,
             serverReceiveTime,
             serverSendTime,
+            serverTime: serverSendTime,
         });
     });
 };

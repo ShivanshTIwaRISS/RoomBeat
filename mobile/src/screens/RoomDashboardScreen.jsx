@@ -9,6 +9,7 @@ import { DeviceList } from '../components/room/DeviceList';
 import { SyncOverview } from '../components/sync/SyncOverview';
 import { Button } from '../components/common/Button';
 import { useRoomStore } from '../store/useRoomStore';
+import { useSessionStore } from '../store/useSessionStore';
 import { usePlaybackStore } from '../store/usePlaybackStore';
 import { useSyncStore } from '../store/useSyncStore';
 import { useSocket } from '../hooks/useSocket';
@@ -31,6 +32,7 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
     const roundTripTimeMs = useSyncStore((s) => s.roundTripTimeMs);
     const playbackDriftMs = useSyncStore((s) => s.playbackDriftMs);
     const syncHealth = useSyncStore((s) => s.health);
+    const session = useSessionStore((s) => s.session);
     const playbackControls = usePlayback();
     const [qrModalVisible, setQrModalVisible] = useState(false);
     useEffect(() => {
@@ -38,10 +40,10 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
         roomsApi.getById(roomId).then((res) => {
             const data = res.data || res;
             if (data && data.id) {
-                setRoom(data, data.hostSessionId, '');
+                setRoom(data, data.hostSessionId, session?.id || '');
             }
         }).catch(console.warn);
-    }, [roomId, setRoom]);
+    }, [roomId, setRoom, session?.id]);
     const handleLeave = () => {
         Alert.alert(isHost ? 'Close Room' : 'Leave Room', isHost ? 'Are you sure you want to close this room for all speakers?' : 'Disconnect from this session?', [
             { text: 'Cancel', style: 'cancel' },

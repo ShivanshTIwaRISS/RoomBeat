@@ -108,7 +108,14 @@ class RoomService {
             throw new errorHandler_1.AppError('Room not found', 404, 'ROOM_NOT_FOUND');
         }
         if (room.status !== 'active') {
-            throw new errorHandler_1.AppError('Room is no longer active', 400, 'ROOM_INACTIVE');
+            if (room.hostSessionId === sessionId) {
+                await database_1.prisma.room.update({
+                    where: { id: room.id },
+                    data: { status: 'active' },
+                });
+            } else {
+                throw new errorHandler_1.AppError('Room is no longer active', 400, 'ROOM_INACTIVE');
+            }
         }
         if (new Date() > room.expiresAt) {
             throw new errorHandler_1.AppError('Room has expired', 400, 'ROOM_EXPIRED');
@@ -121,14 +128,14 @@ class RoomService {
             where: { roomId_sessionId: { roomId: room.id, sessionId } },
         });
         if (existingMember) {
-            if (existingMember.isActive) {
-                throw new errorHandler_1.AppError('Already a member of this room', 400, 'ALREADY_MEMBER');
+            if (!existingMember.isActive) {
+                // Re-activate membership
+                await database_1.prisma.roomMember.update({
+                    where: { id: existingMember.id },
+                    data: { isActive: true, joinedAt: new Date() },
+                });
             }
-            // Re-activate membership
-            await database_1.prisma.roomMember.update({
-                where: { id: existingMember.id },
-                data: { isActive: true, joinedAt: new Date() },
-            });
+            return this.getRoom(room.id);
         }
         else {
             await database_1.prisma.roomMember.create({
