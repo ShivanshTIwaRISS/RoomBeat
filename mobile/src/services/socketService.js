@@ -10,21 +10,28 @@ class SocketService {
         if (this.socket && this.socket.connected) {
             return this.socket;
         }
-        if (this.isConnecting && this.socket) {
-            return this.socket;
-        }
-        this.isConnecting = true;
         let host = null;
         try { host = await AsyncStorage.getItem('roombeat_server_host'); } catch (e) {}
         const targetUrl = host ? `http://${host}:3000` : SOCKET_URL;
+
+        if (this.socket) {
+            if (token) this.socket.auth = { token };
+            if (!this.socket.connected) {
+                this.socket.connect();
+            }
+            return this.socket;
+        }
+
+        this.isConnecting = true;
         console.log(`[SocketService] Connecting to ${targetUrl}`);
         this.socket = io(targetUrl, {
             auth: { token },
             transports: ['websocket', 'polling'],
             reconnection: true,
-            reconnectionAttempts: 10,
+            reconnectionAttempts: 15,
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
+            timeout: 10000,
         });
         this.socket.on('connect', () => {
             console.log(`[SocketService] Connected! ID: ${this.socket?.id}`);

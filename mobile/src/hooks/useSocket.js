@@ -42,6 +42,11 @@ export const useSocket = (roomId) => {
             sock.off('playback:seek');
             sock.off('playback:stop');
             sock.off('sync:updated');
+            sock.off('connect');
+
+            sock.on('connect', () => {
+                if (roomId) sock.emit('room:join', { roomId });
+            });
 
             // Room events
             sock.on('room:device:joined', (data) => {

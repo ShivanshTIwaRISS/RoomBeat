@@ -628,6 +628,31 @@
       const displayName = name || localStorage.getItem('roombeat_user_name') || 'User';
       const deviceId = getOrCreateDeviceId();
       document.getElementById('device-id-tag').innerText = deviceId;
+
+      // ── 1. Try to restore existing token from localStorage ──────────────
+      const storedToken = (() => { try { return localStorage.getItem('roombeat_token'); } catch(e){ return null; } })();
+      const storedSession = (() => { try { const s = localStorage.getItem('roombeat_session'); return s ? JSON.parse(s) : null; } catch(e){ return null; } })();
+      if (storedToken && storedSession) {
+        // Verify the stored token is still valid with the server
+        try {
+          const vRes = await fetch('/api/v1/sessions/me', {
+            headers: { 'Authorization': 'Bearer ' + storedToken }
+          });
+          if (vRes.ok) {
+            authToken = storedToken;
+            currentSession = storedSession;
+            setupSocket(authToken);
+            log('Session restored: ' + currentSession.displayName);
+            const badge = document.getElementById('home-status-badge');
+            if (badge) badge.innerText = 'Ready';
+            const chip = document.getElementById('home-user-chip');
+            if (chip) chip.innerText = '👤 ' + currentSession.displayName;
+            return authToken;
+          }
+        } catch(e) { /* token stale — fall through to create new */ }
+      }
+
+      // ── 2. Create a new guest session ────────────────────────────────────
       try {
         const res = await fetch('/api/v1/sessions/guest', {
           method: 'POST',
@@ -663,11 +688,25 @@
     // ============================================================
     function setupSocket(token) {
       if (socket && socket.connected) return;
-      socket = io({ auth: { token }, transports: ['websocket', 'polling'] });
+      if (socket) {
+        try { socket.disconnect(); } catch(e) {}
+        socket = null;
+      }
+      socket = io({
+        auth: { token },
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 15,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 10000,
+      });
 
       socket.on('connect', () => {
         document.getElementById('connection-status').innerText = '● Connected';
         document.getElementById('connection-status').style.color = 'var(--success)';
+        const homeBadge = document.getElementById('home-status-badge');
+        if (homeBadge) homeBadge.innerText = 'Ready';
         log('Socket.IO connected (' + socket.id.slice(0, 5) + ')');
         if (currentRoom && currentRoom.id) {
           socket.emit('room:join', { roomId: currentRoom.id });
@@ -679,7 +718,17 @@
       socket.on('disconnect', () => {
         document.getElementById('connection-status').innerText = '● Disconnected';
         document.getElementById('connection-status').style.color = 'var(--error)';
+        const homeBadge = document.getElementById('home-status-badge');
+        if (homeBadge) homeBadge.innerText = 'Offline';
         log('Disconnected from server', false);
+      });
+
+      socket.on('connect_error', (err) => {
+        document.getElementById('connection-status').innerText = '● Error';
+        document.getElementById('connection-status').style.color = 'var(--error)';
+        const homeBadge = document.getElementById('home-status-badge');
+        if (homeBadge) homeBadge.innerText = 'Error';
+        log('Connection error: ' + err.message, false);
       });
 
       // ---- NTP SYNC ----
@@ -786,7 +835,6 @@
           const sysSection = document.getElementById('sys-audio-section');
           if (sysSection) sysSection.style.display = 'flex';
         }
-      });
       });
 
       socket.on('room:closed', () => {
@@ -1964,6 +2012,8 @@
         });
       } else {
         showScreen('screen-name');
+        // Initialize guest session in background so socket is connected immediately
+        ensureSession('User').catch(() => {});
       }
 
       // Enter key on name input
