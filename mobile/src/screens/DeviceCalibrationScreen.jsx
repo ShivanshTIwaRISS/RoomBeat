@@ -12,10 +12,15 @@ export const DeviceCalibrationScreen = ({ navigation, }) => {
     const setLatencyCompensation = useAppStore((s) => s.setLatencyCompensation);
     const [currentCompensation, setCurrentCompensation] = useState(latencyCompensationMs);
     const handleAdjust = (deltaMs) => {
-        const updated = Math.min(300, Math.max(-300, currentCompensation + deltaMs));
+        const updated = Math.min(450, Math.max(-250, currentCompensation + deltaMs));
         setCurrentCompensation(updated);
         setLatencyCompensation(updated);
         syncManager.setLatencyCompensation(updated);
+    };
+    const handleSetPreset = (presetMs) => {
+        setCurrentCompensation(presetMs);
+        setLatencyCompensation(presetMs);
+        syncManager.setLatencyCompensation(presetMs);
     };
     const handleReset = () => {
         setCurrentCompensation(0);
@@ -39,11 +44,24 @@ export const DeviceCalibrationScreen = ({ navigation, }) => {
             <Text style={styles.offsetNumber}>{formatMs(currentCompensation)}</Text>
             <Text style={styles.offsetLabel}>
               {currentCompensation > 0
-            ? 'Plays earlier to compensate for hardware delay'
+            ? 'Plays earlier to compensate for hardware / Bluetooth delay'
             : currentCompensation < 0
                 ? 'Plays later'
                 : 'Default hardware timing'}
             </Text>
+          </View>
+
+          {/* Quick Output Presets (Bluetooth / Phone / Soundbar) */}
+          <View style={styles.presetsRow}>
+            <TouchableOpacity onPress={() => handleSetPreset(0)} style={[styles.presetBtn, currentCompensation === 0 && styles.presetBtnActive]} activeOpacity={0.7}>
+              <Text style={[styles.presetBtnText, currentCompensation === 0 && styles.presetBtnTextActive]}>📱 Phone</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleSetPreset(180)} style={[styles.presetBtn, currentCompensation === 180 && styles.presetBtnActive]} activeOpacity={0.7}>
+              <Text style={[styles.presetBtnText, currentCompensation === 180 && styles.presetBtnTextActive]}>🎧 Bluetooth (+180ms)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleSetPreset(260)} style={[styles.presetBtn, currentCompensation === 260 && styles.presetBtnActive]} activeOpacity={0.7}>
+              <Text style={[styles.presetBtnText, currentCompensation === 260 && styles.presetBtnTextActive]}>🔊 Soundbar</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Stepper Controls */}
@@ -124,6 +142,35 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginTop: spacing.md,
+    },
+    presetsRow: {
+        flexDirection: 'row',
+        gap: 6,
+        marginBottom: spacing.md,
+    },
+    presetBtn: {
+        flex: 1,
+        backgroundColor: colors.surfaceLight,
+        paddingVertical: 10,
+        paddingHorizontal: 4,
+        borderRadius: borderRadius.md,
+        borderWidth: 1,
+        borderColor: colors.surfaceBorder,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    presetBtnActive: {
+        borderColor: colors.primary,
+        backgroundColor: 'rgba(200, 255, 0, 0.1)',
+    },
+    presetBtnText: {
+        ...typography.small,
+        fontWeight: '700',
+        color: colors.textSecondary,
+        fontSize: 10,
+    },
+    presetBtnTextActive: {
+        color: colors.primary,
     },
     stepBtn: {
         backgroundColor: colors.surfaceLight,

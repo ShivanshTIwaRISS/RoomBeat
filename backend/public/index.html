@@ -243,17 +243,28 @@
           <div class="metric-box"><div id="sync-rtt" class="metric-val">0 ms</div><div class="metric-label">Network RTT</div></div>
           <div class="metric-box"><div id="sync-drift" class="metric-val">±1 ms</div><div class="metric-label">Est. Drift</div></div>
         </div>
-        <div style="margin-top: 10px; background: var(--surface-light); padding: 8px 10px; border-radius: 8px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-            <span style="font-size: 11px; font-weight: 700; color: var(--text-sec); text-transform: uppercase;">🎯 Latency Fine-Tune Nudge</span>
+        <div style="margin-top: 10px; background: var(--surface-light); padding: 10px; border-radius: 12px; border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 11px; font-weight: 700; color: var(--text-sec); text-transform: uppercase;">🎯 Output Mode & Bluetooth Sync</span>
             <span id="calib-val" style="font-family: monospace; font-size: 12px; font-weight: 700; color: var(--primary);">0 ms</span>
           </div>
+
+          <!-- 1-Tap Output Presets -->
+          <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+            <button id="btn-mode-phone" class="btn btn-secondary btn-sm" onclick="setOutputPreset(0)" style="flex:1;padding:5px 4px;font-size:11px;font-weight:700;border-color:var(--primary);color:var(--primary);">📱 Phone (0ms)</button>
+            <button id="btn-mode-bt" class="btn btn-secondary btn-sm" onclick="setOutputPreset(180)" style="flex:1;padding:5px 4px;font-size:11px;font-weight:700;">🎧 Bluetooth (+180ms)</button>
+            <button id="btn-mode-bar" class="btn btn-secondary btn-sm" onclick="setOutputPreset(260)" style="flex:1;padding:5px 4px;font-size:11px;font-weight:700;">🔊 Soundbar (+260ms)</button>
+          </div>
+
           <div style="display: flex; gap: 6px; align-items: center;">
-            <button class="btn btn-secondary btn-sm" onclick="nudgeCalibration(-5)" style="padding:4px 8px;font-size:11px;width:auto;">-5ms</button>
-            <button class="btn btn-secondary btn-sm" onclick="nudgeCalibration(-1)" style="padding:4px 8px;font-size:11px;width:auto;">-1ms</button>
-            <input id="calib-slider" type="range" min="-60" max="60" value="0" step="1" oninput="onCalibrationChange(this.value)" style="flex:1;accent-color:var(--primary);cursor:pointer;">
-            <button class="btn btn-secondary btn-sm" onclick="nudgeCalibration(+1)" style="padding:4px 8px;font-size:11px;width:auto;">+1ms</button>
-            <button class="btn btn-secondary btn-sm" onclick="nudgeCalibration(+5)" style="padding:4px 8px;font-size:11px;width:auto;">+5ms</button>
+            <button class="btn btn-secondary btn-sm" onclick="nudgeCalibration(-20)" style="padding:4px 7px;font-size:11px;width:auto;">-20ms</button>
+            <button class="btn btn-secondary btn-sm" onclick="nudgeCalibration(-5)" style="padding:4px 7px;font-size:11px;width:auto;">-5ms</button>
+            <input id="calib-slider" type="range" min="-250" max="400" value="0" step="5" oninput="onCalibrationChange(this.value)" style="flex:1;accent-color:var(--primary);cursor:pointer;">
+            <button class="btn btn-secondary btn-sm" onclick="nudgeCalibration(+5)" style="padding:4px 7px;font-size:11px;width:auto;">+5ms</button>
+            <button class="btn btn-secondary btn-sm" onclick="nudgeCalibration(+20)" style="padding:4px 7px;font-size:11px;width:auto;">+20ms</button>
+          </div>
+          <div style="font-size:10px;color:var(--text-sec);margin-top:5px;text-align:center;">
+            Tip: Connect Bluetooth speaker → tap <b>Bluetooth (+180ms)</b> to eliminate delay.
           </div>
         </div>
       </div>
@@ -310,6 +321,23 @@
       <div class="card" style="padding: 12px; margin-bottom: 12px;">
         <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">🎵 Choose / Sync Music</div>
         <div style="display: flex; gap: 8px; flex-direction: column;">
+
+          <!-- Option 0: Fast CDN Cloud Beats & Precision Metronome -->
+          <div style="background:linear-gradient(135deg, rgba(200,255,0,0.08), rgba(0,240,255,0.05));border:1px solid rgba(200,255,0,0.3);padding:10px;border-radius:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--primary);">⚡ Fast CDN Beats &amp; Metronome</div>
+                <div style="font-size:11px;color:var(--text-sec);">Instant zero-download beats &amp; precision phase click</div>
+              </div>
+              <span class="badge badge-primary" style="font-size:10px;padding:2px 6px;">Zero Latency</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;">
+              <button class="btn btn-secondary btn-sm" onclick="selectCdnPreset('metronome')" style="padding:6px;font-size:11px;font-weight:700;">⏱️ Sync Click (120 BPM)</button>
+              <button class="btn btn-secondary btn-sm" onclick="selectCdnPreset('cyberpunk')" style="padding:6px;font-size:11px;font-weight:700;">🥁 Cyberpunk 808 Bass</button>
+              <button class="btn btn-secondary btn-sm" onclick="selectCdnPreset('lofi')" style="padding:6px;font-size:11px;font-weight:700;">🌴 Lo-Fi Chill Hop</button>
+              <button class="btn btn-secondary btn-sm" onclick="selectCdnPreset('club')" style="padding:6px;font-size:11px;font-weight:700;">⚡ Club Dance Drop</button>
+            </div>
+          </div>
 
           <!-- Option 1: local file -->
           <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface-light);padding:10px;border-radius:10px;">
@@ -591,27 +619,155 @@
     }
 
     function generateSynthGroove() {
+      return generateCyberpunkBassTrack(128, 30);
+    }
+
+    function generateMetronomeTrack(bpm = 120, duration = 30) {
       const ctx = getAudioContext();
       const sampleRate = ctx.sampleRate || 44100;
-      const duration = 30;
       const buffer = ctx.createBuffer(2, sampleRate * duration, sampleRate);
       const left = buffer.getChannelData(0), right = buffer.getChannelData(1);
-      const bpm = 128, beatDur = 60 / bpm;
+      const beatDur = 60 / bpm;
       for (let i = 0; i < buffer.length; i++) {
-        const t = i / sampleRate, beatTime = t % beatDur, beatIdx = Math.floor(t / beatDur);
-        let kick = 0;
-        if (beatTime < 0.2) { const freq = 150 * Math.exp(-beatTime*25)+45; kick = Math.sin(2*Math.PI*freq*beatTime)*Math.exp(-beatTime*15)*0.7; }
-        let snare = 0;
-        if (beatIdx % 2 === 1 && beatTime < 0.15) { snare = Math.sin(i*1234.56)*Math.exp(-beatTime*30)*0.35; }
-        const bass = Math.sin(2*Math.PI*55*t)*0.25;
-        left[i] = right[i] = Math.max(-1, Math.min(1, kick+snare+bass));
+        const t = i / sampleRate;
+        const beatTime = t % beatDur;
+        const beatIdx = Math.floor(t / beatDur);
+        let click = 0;
+        if (beatTime < 0.04) {
+          const freq = (beatIdx % 4 === 0) ? 1800 : 900;
+          click = Math.sin(2 * Math.PI * freq * beatTime) * Math.exp(-beatTime * 120) * 0.9;
+        }
+        left[i] = right[i] = click;
       }
-      audioBuffer = buffer;
-      document.getElementById('now-playing-title').innerText = 'Synthesized Beat';
-      document.getElementById('now-playing-artist').innerText = 'RoomBeat Audio Engine';
+      return buffer;
+    }
+
+    function generateCyberpunkBassTrack(bpm = 128, duration = 30) {
+      const ctx = getAudioContext();
+      const sampleRate = ctx.sampleRate || 44100;
+      const buffer = ctx.createBuffer(2, sampleRate * duration, sampleRate);
+      const left = buffer.getChannelData(0), right = buffer.getChannelData(1);
+      const beatDur = 60 / bpm;
+      for (let i = 0; i < buffer.length; i++) {
+        const t = i / sampleRate;
+        const beatTime = t % beatDur;
+        const beatIdx = Math.floor(t / beatDur);
+        let kick = 0;
+        if (beatTime < 0.28) {
+          const freq = 160 * Math.exp(-beatTime * 22) + 42;
+          kick = Math.sin(2 * Math.PI * freq * beatTime) * Math.exp(-beatTime * 10) * 0.85;
+        }
+        let snare = 0;
+        if ((beatIdx % 2 === 1) && beatTime < 0.18) {
+          snare = (Math.random() * 2 - 1) * Math.exp(-beatTime * 28) * 0.45;
+        }
+        const note = [55, 65.4, 73.4, 82.4][beatIdx % 4];
+        const bass = (Math.sin(2 * Math.PI * note * t) + 0.5 * Math.sin(4 * Math.PI * note * t)) * 0.25;
+        const hatTime = t % (beatDur / 2);
+        const hat = (hatTime < 0.03) ? (Math.random() * 2 - 1) * Math.exp(-hatTime * 140) * 0.18 : 0;
+        left[i] = right[i] = Math.max(-1, Math.min(1, kick + snare + bass + hat));
+      }
+      return buffer;
+    }
+
+    function generateLofiTrack(bpm = 84, duration = 30) {
+      const ctx = getAudioContext();
+      const sampleRate = ctx.sampleRate || 44100;
+      const buffer = ctx.createBuffer(2, sampleRate * duration, sampleRate);
+      const left = buffer.getChannelData(0), right = buffer.getChannelData(1);
+      const beatDur = 60 / bpm;
+      for (let i = 0; i < buffer.length; i++) {
+        const t = i / sampleRate;
+        const beatTime = t % beatDur;
+        const beatIdx = Math.floor(t / beatDur);
+        let kick = 0;
+        if (beatTime < 0.22) {
+          const freq = 90 * Math.exp(-beatTime * 16) + 38;
+          kick = Math.sin(2 * Math.PI * freq * beatTime) * Math.exp(-beatTime * 12) * 0.65;
+        }
+        let rim = 0;
+        if ((beatIdx % 2 === 1) && beatTime < 0.06) {
+          rim = Math.sin(2 * Math.PI * 1100 * beatTime) * Math.exp(-beatTime * 80) * 0.4;
+        }
+        const chords = [[220, 261.6, 329.6], [196, 246.9, 293.7], [174.6, 220, 261.6], [164.8, 196, 246.9]];
+        const curChord = chords[Math.floor(beatIdx / 4) % chords.length];
+        const pad = (Math.sin(2 * Math.PI * curChord[0] * t) + Math.sin(2 * Math.PI * curChord[1] * t) + Math.sin(2 * Math.PI * curChord[2] * t)) * 0.08;
+        const vinyl = (Math.random() * 2 - 1) * 0.015;
+        left[i] = right[i] = Math.max(-1, Math.min(1, kick + rim + pad + vinyl));
+      }
+      return buffer;
+    }
+
+    function generateClubDanceTrack(bpm = 130, duration = 30) {
+      const ctx = getAudioContext();
+      const sampleRate = ctx.sampleRate || 44100;
+      const buffer = ctx.createBuffer(2, sampleRate * duration, sampleRate);
+      const left = buffer.getChannelData(0), right = buffer.getChannelData(1);
+      const beatDur = 60 / bpm;
+      for (let i = 0; i < buffer.length; i++) {
+        const t = i / sampleRate;
+        const beatTime = t % beatDur;
+        const beatIdx = Math.floor(t / beatDur);
+        let kick = 0;
+        if (beatTime < 0.2) {
+          const freq = 180 * Math.exp(-beatTime * 28) + 48;
+          kick = Math.sin(2 * Math.PI * freq * beatTime) * Math.exp(-beatTime * 12) * 0.9;
+        }
+        const offBeatTime = (t - beatDur * 0.5) % beatDur;
+        let hat = 0;
+        if (offBeatTime > 0 && offBeatTime < 0.12) {
+          hat = (Math.random() * 2 - 1) * Math.exp(-offBeatTime * 35) * 0.35;
+        }
+        let clap = 0;
+        if ((beatIdx % 2 === 1) && beatTime < 0.14) {
+          clap = (Math.random() * 2 - 1) * Math.exp(-beatTime * 30) * 0.4;
+        }
+        left[i] = right[i] = Math.max(-1, Math.min(1, kick + hat + clap));
+      }
+      return buffer;
+    }
+
+    function selectCdnPreset(presetId) {
+      if (!currentRoom) { toast('Please join a room first!', 'error'); return; }
+      cleanupYouTube();
+      let buf = null;
+      let title = 'CDN Beat';
+      let artist = 'RoomBeat Audio Engine';
+      if (presetId === 'metronome') {
+        buf = generateMetronomeTrack(120, 30);
+        title = '⏱️ Sync Metronome Click (120 BPM)';
+        artist = 'RoomBeat Precision Calibration';
+      } else if (presetId === 'cyberpunk') {
+        buf = generateCyberpunkBassTrack(128, 30);
+        title = '🥁 Cyberpunk 808 Bass Anthem';
+        artist = 'RoomBeat CDN EDM';
+      } else if (presetId === 'lofi') {
+        buf = generateLofiTrack(84, 30);
+        title = '🌴 Lo-Fi Chill Hop';
+        artist = 'RoomBeat CDN Chill';
+      } else {
+        buf = generateClubDanceTrack(130, 30);
+        title = '⚡ Club Dance Drop (130 BPM)';
+        artist = 'RoomBeat CDN Dance';
+      }
+      audioBuffer = buf;
+      document.getElementById('now-playing-title').innerText = title;
+      document.getElementById('now-playing-artist').innerText = artist;
       document.getElementById('time-total').innerText = formatTime(30);
       document.getElementById('track-dur-badge').innerText = formatTime(30);
-      return buffer;
+      toast(`⚡ Loaded ${title}! Ready to play in sync.`, 'success');
+      log(`⚡ Ready: "${title}" across all devices`, true, 'room-logs');
+
+      // Broadcast to all speakers in room so they pre-load identical buffer
+      if (socket && currentRoom) {
+        socket.emit('playback:preset', {
+          roomId: currentRoom.id,
+          presetId,
+          title,
+          bpm: presetId === 'lofi' ? 84 : presetId === 'metronome' ? 120 : presetId === 'club' ? 130 : 128,
+          durationSec: 30
+        });
+      }
     }
 
     // ============================================================
@@ -905,6 +1061,26 @@
         document.getElementById('now-playing-artist').innerText = 'RoomBeat Audio Engine';
       });
 
+      // ---- CLOUD / CDN BEAT PRESETS ----
+      socket.on('playback:preset', (data) => {
+        cleanupYouTube();
+        log(`⚡ Received Cloud Beat: "${data.title}" from ${data.senderName || 'Host'}`, true, 'room-logs');
+        toast(`⚡ Host selected: ${data.title}`, 'info');
+        if (data.presetId === 'metronome') {
+          audioBuffer = generateMetronomeTrack(120, 30);
+        } else if (data.presetId === 'cyberpunk') {
+          audioBuffer = generateCyberpunkBassTrack(128, 30);
+        } else if (data.presetId === 'lofi') {
+          audioBuffer = generateLofiTrack(84, 30);
+        } else {
+          audioBuffer = generateClubDanceTrack(130, 30);
+        }
+        document.getElementById('now-playing-title').innerText = data.title;
+        document.getElementById('now-playing-artist').innerText = 'RoomBeat CDN Engine';
+        document.getElementById('time-total').innerText = formatTime(30);
+        document.getElementById('track-dur-badge').innerText = formatTime(30);
+      });
+
       // ---- SYNCHRONIZED YOUTUBE VIDEO PLAYBACK ----
       socket.on('playback:youtube', (data) => {
         log(`▶ Received YouTube track from ${data.senderName || 'Room'}`, true, 'room-logs');
@@ -916,15 +1092,16 @@
         try {
           const speakerTime = ytPlayer.getCurrentTime();
           const netDelaySec = Number.isFinite(rtt) ? (rtt / 2000) : 0.03;
-          const hostTime = data.currentTime + netDelaySec;
+          // Apply Bluetooth / output latency calibration to YouTube sync as well
+          const calibSec = (Number.isFinite(userCalibrationMs) ? userCalibrationMs : 0) / 1000;
+          const hostTime = data.currentTime + netDelaySec - calibSec;
           const drift = hostTime - speakerTime;
 
-          // Only realign when drift is noticeably off (> 0.8s) to avoid micro-stutter / pitch warping
-          if (Math.abs(drift) > 0.8) {
+          // Realign when drift exceeds 0.3s (300ms) to ensure tight alignment without wobble
+          if (Math.abs(drift) > 0.30) {
             log(`[YouTube Sync] Drift: ${drift > 0 ? '+' : ''}${drift.toFixed(2)}s — aligning to host`, true, 'room-logs');
             ytPlayer.seekTo(hostTime, true);
           }
-          // Strict 1.0x playback rate — prevent audio wobble / pitch distortion
           if (typeof ytPlayer.getPlaybackRate === 'function' && ytPlayer.getPlaybackRate() !== 1) {
             ytPlayer.setPlaybackRate(1);
           }
@@ -1353,8 +1530,11 @@
         return;
       }
       const safeClockOffset = Number.isFinite(clockOffset) ? clockOffset : 0;
+      const safeCalibMs = Number.isFinite(userCalibrationMs) ? userCalibrationMs : 0;
       const serverNow = Date.now() + safeClockOffset;
-      const delayMs = startAtEpoch - serverNow;
+      const rawDelayMs = startAtEpoch - serverNow;
+      // Start earlier by safeCalibMs to absorb Bluetooth / speaker latency
+      const delayMs = rawDelayMs - safeCalibMs;
 
       if (delayMs > 60) {
         try {
@@ -1366,7 +1546,7 @@
             if (typeof player.seekTo === 'function') player.seekTo(startPosSec, true);
             if (typeof player.playVideo === 'function') player.playVideo();
           } catch(e) {}
-        }, delayMs);
+        }, Math.max(0, delayMs));
       } else {
         const elapsedSec = Math.abs(delayMs) / 1000;
         const targetPos = (startPosSec || 0) + elapsedSec;
@@ -1395,10 +1575,22 @@
     }
 
     // ============================================================
-    // CALIBRATION & VOLUME
+    // CALIBRATION & BLUETOOTH OUTPUT PRESETS
     // ============================================================
+    function setOutputPreset(ms) {
+      userCalibrationMs = ms;
+      updateCalibrationUI();
+      const pBtn = document.getElementById('btn-mode-phone');
+      const bBtn = document.getElementById('btn-mode-bt');
+      const sBtn = document.getElementById('btn-mode-bar');
+      if (pBtn) { pBtn.style.borderColor = ms === 0 ? 'var(--primary)' : 'var(--border)'; pBtn.style.color = ms === 0 ? 'var(--primary)' : 'var(--text-sec)'; }
+      if (bBtn) { bBtn.style.borderColor = ms === 180 ? 'var(--primary)' : 'var(--border)'; bBtn.style.color = ms === 180 ? 'var(--primary)' : 'var(--text-sec)'; }
+      if (sBtn) { sBtn.style.borderColor = ms === 260 ? 'var(--primary)' : 'var(--border)'; sBtn.style.color = ms === 260 ? 'var(--primary)' : 'var(--text-sec)'; }
+      toast(ms === 0 ? '📱 Phone Speaker mode (0ms)' : ms === 180 ? '🎧 Bluetooth mode (+180ms delay compensated)' : '🔊 Soundbar mode (+260ms delay compensated)', 'info');
+    }
+
     function nudgeCalibration(delta) {
-      userCalibrationMs = Math.max(-100, Math.min(100, userCalibrationMs + delta));
+      userCalibrationMs = Math.max(-250, Math.min(400, userCalibrationMs + delta));
       updateCalibrationUI();
     }
     function onCalibrationChange(val) { userCalibrationMs = parseInt(val, 10); updateCalibrationUI(); }
@@ -1517,7 +1709,7 @@
           } else {
             const currentPos = typeof ytPlayer.getCurrentTime === 'function' ? ytPlayer.getCurrentTime() : 0;
             const safeClockOffset = Number.isFinite(clockOffset) ? clockOffset : 0;
-            const startAt = Date.now() + safeClockOffset + 800;
+            const startAt = Date.now() + safeClockOffset + 1800; // 1.8s schedule delay gives mobile players time to buffer
             scheduleYouTubeStart(ytPlayer, startAt, currentPos);
             if (socket && currentRoom) {
               socket.emit('playback:youtube:control', { roomId: currentRoom.id, action: 'play', positionSec: currentPos, startAtServerEpochMs: startAt });
@@ -1601,7 +1793,8 @@
       const userCalibSec = safeCalibMs / 1000;
       const serverNow = Date.now() + safeClockOffset;
       const rawDelayMs = safeStartEpoch - serverNow;
-      let delaySec = (rawDelayMs / 1000) - hwLatencySec + userCalibSec;
+      // Subtract userCalibSec: positive calibration starts earlier to eliminate Bluetooth/hardware delay
+      let delaySec = (rawDelayMs / 1000) - hwLatencySec - userCalibSec;
       if (!Number.isFinite(delaySec)) delaySec = 0;
 
       log(`[Sync] Start in ${Math.round(rawDelayMs)}ms | HW:${Math.round(hwLatencySec*1000)}ms | Calib:${(safeCalibMs>0?'+':'')+safeCalibMs}ms | RTT:${Math.round(rtt)}ms`, true, 'room-logs');

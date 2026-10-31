@@ -237,5 +237,18 @@ const registerPlaybackHandlers = (io, socket) => {
             senderId: session.id,
         });
     });
+    /**
+     * Synchronized Cloud / CDN Beat Preset Playback
+     */
+    socket.on('playback:preset', (data) => {
+        if (!session || !data.roomId) return;
+        io.to(data.roomId).emit('playback:preset', {
+            presetId: data.presetId,
+            title: data.title,
+            bpm: data.bpm || 128,
+            durationSec: data.durationSec || 30,
+            senderName: session.displayName,
+        });
+    });
 };
 exports.registerPlaybackHandlers = registerPlaybackHandlers;

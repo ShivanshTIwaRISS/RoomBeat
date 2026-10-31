@@ -41,11 +41,21 @@ export const useSocket = (roomId) => {
             sock.off('playback:pause');
             sock.off('playback:seek');
             sock.off('playback:stop');
+            sock.off('playback:preset');
             sock.off('sync:updated');
             sock.off('connect');
 
             sock.on('connect', () => {
                 if (roomId) sock.emit('room:join', { roomId });
+            });
+
+            sock.on('playback:preset', (data) => {
+                if (!isMounted) return;
+                console.log('[Socket] playback:preset received:', data);
+                setPlaybackState({
+                    currentTrackId: data.presetId,
+                    status: 'prepared',
+                });
             });
 
             // Room events
