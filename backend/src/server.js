@@ -26,11 +26,23 @@ const shutdown = async () => {
 };
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
+const os_1 = __importDefault(require("os"));
+
 server.listen(config_1.config.port, () => {
     console.log(`===============================================`);
     console.log(`🎵 RoomBeat Backend Server running on port ${config_1.config.port}`);
     console.log(`🌍 Environment: ${config_1.config.nodeEnv}`);
-    console.log(`📡 REST API: http://localhost:${config_1.config.port}/api/v1`);
+    console.log(`📡 Local API:  http://localhost:${config_1.config.port}/api/v1`);
+    try {
+        const ifaces = os_1.default.networkInterfaces();
+        for (const name of Object.keys(ifaces)) {
+            for (const iface of ifaces[name] || []) {
+                if (iface.family === 'IPv4' && !iface.internal) {
+                    console.log(`📱 Phone Access: http://${iface.address}:${config_1.config.port}`);
+                }
+            }
+        }
+    } catch(e) {}
     console.log(`⚡ WebSocket ready on port ${config_1.config.port}`);
     console.log(`===============================================`);
 });

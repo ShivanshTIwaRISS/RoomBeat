@@ -1,16 +1,31 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Alert } from 'react-native';
-import { colors, typography, spacing } from '../theme';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Alert, TextInput } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { colors, typography, spacing, borderRadius } from '../theme';
 import { Header } from '../components/common/Header';
 import { Card } from '../components/common/Card';
 import { useAppStore } from '../store/useAppStore';
 import { audioManager } from '../audio/AudioManager';
-import { CONFIG } from '../constants/config';
+import { CONFIG, DEFAULT_DEV_HOST } from '../constants/config';
 export const SettingsScreen = ({ navigation }) => {
     const keepScreenAwake = useAppStore((s) => s.keepScreenAwake);
     const setKeepScreenAwake = useAppStore((s) => s.setKeepScreenAwake);
     const autoReconnect = useAppStore((s) => s.autoReconnect);
     const setAutoReconnect = useAppStore((s) => s.setAutoReconnect);
+    const [serverHost, setServerHost] = useState(DEFAULT_DEV_HOST);
+
+    useEffect(() => {
+        AsyncStorage.getItem('roombeat_server_host').then((val) => {
+            if (val) setServerHost(val);
+        }).catch(() => {});
+    }, []);
+
+    const handleSaveHost = async () => {
+        const clean = serverHost.trim();
+        if (!clean) return;
+        await AsyncStorage.setItem('roombeat_server_host', clean);
+        Alert.alert('Server Host Saved', `App will now connect to http://${clean}:3000`);
+    };
     const handleClearCache = async () => {
         Alert.alert('Clear Audio Cache', 'This will delete all temporarily cached tracks downloaded to this phone. Tracks will be re-downloaded when played.', [
             { text: 'Cancel', style: 'cancel' },
@@ -47,6 +62,31 @@ export const SettingsScreen = ({ navigation }) => {
               <Text style={styles.settingDesc}>Automatically rejoin room if Wi-Fi temporarily drops</Text>
             </View>
             <Switch value={autoReconnect} onValueChange={setAutoReconnect} trackColor={{ false: colors.surfaceBorder, true: colors.primary }} thumbColor={colors.white}/>
+          </View>
+        </Card>
+
+        {/* Server Connection */}
+        <Text style={styles.sectionHeader}>Server Connection (Wi-Fi LAN)</Text>
+        <Card style={styles.card}>
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={styles.settingTitle}>Backend Host IP</Text>
+              <Text style={styles.settingDesc}>IP address of computer running RoomBeat backend</Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+            <TextInput
+              style={styles.hostInput}
+              value={serverHost}
+              onChangeText={setServerHost}
+              placeholder="e.g. 192.168.1.5"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSaveHost} activeOpacity={0.8}>
+              <Text style={styles.saveBtnText}>Save</Text>
+            </TouchableOpacity>
           </View>
         </Card>
 
@@ -136,5 +176,30 @@ const styles = StyleSheet.create({
     },
     actionArrow: {
         fontSize: 18,
+    },
+    hostInput: {
+        flex: 1,
+        backgroundColor: colors.surfaceLight,
+        borderWidth: 1,
+        borderColor: colors.surfaceBorder,
+        borderRadius: borderRadius.md,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        color: colors.textPrimary,
+        fontSize: 14,
+        fontFamily: 'Courier',
+    },
+    saveBtn: {
+        backgroundColor: colors.primary,
+        borderRadius: borderRadius.md,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    saveBtnText: {
+        color: '#000',
+        fontWeight: '700',
+        fontSize: 13,
     },
 });

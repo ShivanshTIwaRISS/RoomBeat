@@ -1,11 +1,12 @@
 import { io } from 'socket.io-client';
 import { SOCKET_URL } from '../constants/config';
 import { clockSync } from '../sync/ClockSync';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 class SocketService {
     socket = null;
     isConnecting = false;
     clockPingInterval = null;
-    connect(token) {
+    async connect(token) {
         if (this.socket && this.socket.connected) {
             return this.socket;
         }
@@ -13,8 +14,11 @@ class SocketService {
             return this.socket;
         }
         this.isConnecting = true;
-        console.log(`[SocketService] Connecting to ${SOCKET_URL}`);
-        this.socket = io(SOCKET_URL, {
+        let host = null;
+        try { host = await AsyncStorage.getItem('roombeat_server_host'); } catch (e) {}
+        const targetUrl = host ? `http://${host}:3000` : SOCKET_URL;
+        console.log(`[SocketService] Connecting to ${targetUrl}`);
+        this.socket = io(targetUrl, {
             auth: { token },
             transports: ['websocket', 'polling'],
             reconnection: true,

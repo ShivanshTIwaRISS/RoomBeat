@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../constants/config';
 import { storage } from '../utils/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 export const apiClient = axios.create({
     baseURL: `${API_BASE_URL}/api/v1`,
     timeout: 15000,
@@ -8,8 +10,14 @@ export const apiClient = axios.create({
         'Content-Type': 'application/json',
     },
 });
-// Request interceptor to attach JWT token
+// Request interceptor to attach dynamic server host and JWT token
 apiClient.interceptors.request.use(async (config) => {
+    try {
+        const customHost = await AsyncStorage.getItem('roombeat_server_host');
+        if (customHost) {
+            config.baseURL = `http://${customHost}:3000/api/v1`;
+        }
+    } catch (e) {}
     const token = await storage.getToken();
     if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;

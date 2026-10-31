@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerRoomHandlers = void 0;
 const database_1 = require("../../config/database");
 const room_service_1 = require("../../services/room.service");
+const playback_handler_1 = require("./playback.handler");
 // In-memory host disconnect grace period timer tracker: roomId -> NodeJS.Timeout
 const hostDisconnectTimers = new Map();
 const registerRoomHandlers = (io, socket) => {
@@ -54,6 +55,7 @@ const registerRoomHandlers = (io, socket) => {
                     ...room.playbackState,
                     serverStartAt: room.playbackState.serverStartAt?.toString() ?? null,
                 } : null,
+                activeYouTube: playback_handler_1.activeYouTubeRooms.get(room.id) || null,
             });
         }
         catch (err) {

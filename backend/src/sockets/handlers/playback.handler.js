@@ -2,6 +2,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerPlaybackHandlers = void 0;
 const playback_service_1 = require("../../services/playback.service");
+const activeYouTubeRooms = new Map();
+exports.activeYouTubeRooms = activeYouTubeRooms;
+
 const registerPlaybackHandlers = (io, socket) => {
     const session = socket.session;
     /**
@@ -184,17 +187,26 @@ const registerPlaybackHandlers = (io, socket) => {
     socket.on('playback:youtube', (data) => {
         if (!session || !data.roomId)
             return;
-        io.to(data.roomId).emit('playback:youtube', {
+        const ytState = {
             videoId: data.videoId,
             title: data.title || 'YouTube Audio',
             startAtServerEpochMs: data.startAtServerEpochMs || (Date.now() + 2500),
             positionSec: data.positionSec || 0,
+            isPlaying: true,
             senderName: session.displayName,
-        });
+        };
+        activeYouTubeRooms.set(data.roomId, ytState);
+        io.to(data.roomId).emit('playback:youtube', ytState);
     });
     socket.on('playback:youtube:sync', (data) => {
         if (!session || !data.roomId)
             return;
+        const current = activeYouTubeRooms.get(data.roomId);
+        if (current) {
+            current.positionSec = data.currentTime || current.positionSec;
+            current.isPlaying = Boolean(data.isPlaying);
+            activeYouTubeRooms.set(data.roomId, current);
+        }
         socket.to(data.roomId).emit('playback:youtube:sync', {
             currentTime: data.currentTime,
             isPlaying: data.isPlaying,
@@ -204,6 +216,20 @@ const registerPlaybackHandlers = (io, socket) => {
     socket.on('playback:youtube:control', (data) => {
         if (!session || !data.roomId)
             return;
+        const current = activeYouTubeRooms.get(data.roomId);
+        if (current) {
+            if (data.action === 'pause') {
+                current.isPlaying = false;
+                current.positionSec = data.positionSec || current.positionSec;
+            } else if (data.action === 'play') {
+                current.isPlaying = true;
+                current.startAtServerEpochMs = data.startAtServerEpochMs || Date.now();
+                current.positionSec = data.positionSec || current.positionSec;
+            } else if (data.action === 'seek') {
+                current.positionSec = data.positionSec || 0;
+            }
+            activeYouTubeRooms.set(data.roomId, current);
+        }
         socket.to(data.roomId).emit('playback:youtube:control', {
             action: data.action,
             positionSec: data.positionSec || 0,

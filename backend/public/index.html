@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>RoomBeat — Synchronized Wireless Speaker System</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0D0D0F">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="RoomBeat">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="icon" type="image/png" href="/icon-192.png">
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
   <style>
@@ -157,6 +164,7 @@
       <div class="header">
         <div class="brand"><span>🔊</span> RoomBeat</div>
         <div style="display:flex;gap:8px;align-items:center;">
+          <button id="pwa-install-btn" class="btn btn-secondary btn-sm" onclick="installPwa()" style="display:none;width:auto;padding:5px 10px;font-size:11px;border-color:var(--primary);color:var(--primary);">📲 Install App</button>
           <span id="home-user-chip" style="font-size:12px;color:var(--text-sec);font-weight:600;"></span>
           <span id="home-status-badge" class="badge badge-primary">Connecting...</span>
         </div>
@@ -711,6 +719,7 @@
         if (icon) icon.innerText = volPct === 0 ? '🔇' : volPct < 40 ? '🔉' : '🔊';
         roomVolume = data.volume;
         if (audioCtx && gainNode) { gainNode.gain.setTargetAtTime(roomVolume, audioCtx.currentTime, 0.03); }
+        if (ytPlayer && typeof ytPlayer.setVolume === 'function') { try { ytPlayer.setVolume(volPct); } catch(e) {} }
         if (data.senderId !== (currentSession && currentSession.id)) {
           toast(`🔊 Volume synced: ${volPct}% by ${data.senderName || 'Room'}`, 'info');
           log(`🔊 Volume synced: ${volPct}%`, true, 'room-logs');
@@ -738,6 +747,10 @@
           const startAtEpoch = Number(data.playbackState.serverStartAt);
           log('Room is actively playing! Joining in sync...', true, 'room-logs');
           handleScheduledPlay(startAtEpoch, data.playbackState.positionMs || 0);
+        } else if (data && data.activeYouTube && data.activeYouTube.isPlaying) {
+          const yt = data.activeYouTube;
+          log('▶ YouTube track actively playing in room! Joining in sync...', true, 'room-logs');
+          loadYouTubeVideo(yt.videoId, yt.title, yt.startAtServerEpochMs, yt.positionSec || 0);
         }
       });
 
@@ -751,6 +764,29 @@
       socket.on('room:device:left', (data) => {
         removeSpeakerRow(data.sessionId);
         toast(`📴 ${data.displayName || 'Someone'} left the room`, 'info');
+      });
+
+      socket.on('room:device:updated', (data) => {
+        const row = document.getElementById('speaker-' + data.sessionId);
+        if (row) {
+          const badge = row.querySelector('.badge');
+          if (badge) {
+            badge.className = data.status === 'disconnected' ? 'badge badge-secondary' : 'badge badge-success';
+            badge.innerText = data.status === 'disconnected' ? 'Away' : 'Online';
+          }
+        }
+      });
+
+      socket.on('room:host_changed', (data) => {
+        if (currentSession && data.newHostId === currentSession.id) {
+          isHost = true;
+          toast('👑 You are now the Room Host!', 'success');
+          log('👑 You are now the Room Host!', true, 'room-logs');
+          renderSpeakerList();
+          const sysSection = document.getElementById('sys-audio-section');
+          if (sysSection) sysSection.style.display = 'flex';
+        }
+      });
       });
 
       socket.on('room:closed', () => {
@@ -1115,7 +1151,8 @@
     function openQrModal() {
       if (!currentRoom) return;
       const code = currentRoom.code;
-      document.getElementById('qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?data=${code}&size=200x200&bgcolor=ffffff&color=000000&margin=8`;
+      const inviteUrl = `${window.location.origin}/?code=${code}`;
+      document.getElementById('qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(inviteUrl)}&size=200x200&bgcolor=ffffff&color=000000&margin=8`;
       document.getElementById('qr-room-code-display').innerText = code;
       document.getElementById('qr-modal').classList.add('open');
     }
@@ -1124,10 +1161,11 @@
 
     function copyRoomCode() {
       if (!currentRoom) return;
-      navigator.clipboard.writeText(currentRoom.code).then(() => toast('📋 Room code copied!', 'success')).catch(() => {
+      const inviteUrl = `${window.location.origin}/?code=${currentRoom.code}`;
+      navigator.clipboard.writeText(inviteUrl).then(() => toast('📋 Invite link copied!', 'success')).catch(() => {
         const ta = document.createElement('textarea');
-        ta.value = currentRoom.code; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
-        toast('📋 Copied!', 'success');
+        ta.value = inviteUrl; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+        toast('📋 Invite link copied!', 'success');
       });
     }
 
@@ -1332,6 +1370,7 @@
       const icon = document.getElementById('volume-icon');
       if (icon) icon.innerText = numVal === 0 ? '🔇' : numVal < 40 ? '🔉' : '🔊';
       if (audioCtx && gainNode) { gainNode.gain.setTargetAtTime(roomVolume, audioCtx.currentTime, 0.02); }
+      if (ytPlayer && typeof ytPlayer.setVolume === 'function') { try { ytPlayer.setVolume(numVal); } catch(e) {} }
       if (emitSocket && socket && currentRoom) {
         socket.emit('playback:volume', { roomId: currentRoom.id, volume: roomVolume });
       }
@@ -1937,6 +1976,49 @@
         joinInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleJoinRoomClick(); });
         joinInput.addEventListener('input', () => { joinInput.value = joinInput.value.toUpperCase(); });
       }
+
+      // Register PWA Service Worker
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      }
+
+      // Check for ?code= in URL for 1-tap QR invite joining
+      const urlParams = new URLSearchParams(window.location.search);
+      const inviteCode = urlParams.get('code');
+      if (inviteCode && inviteCode.length >= 4) {
+        const cleanCode = inviteCode.trim().toUpperCase();
+        if (joinInput) joinInput.value = cleanCode;
+        toast('🔗 Auto-joining room ' + cleanCode + '...', 'info');
+        setTimeout(() => {
+          if (currentSession) {
+            handleJoinRoomClick();
+          } else {
+            ensureSession('Speaker').then(() => handleJoinRoomClick()).catch(() => {});
+          }
+        }, 500);
+      }
+
+      // PWA Install prompt
+      let deferredPrompt = null;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        const installBtn = document.getElementById('pwa-install-btn');
+        if (installBtn) installBtn.style.display = 'inline-flex';
+      });
+
+      window.installPwa = function() {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then(() => {
+            deferredPrompt = null;
+            const installBtn = document.getElementById('pwa-install-btn');
+            if (installBtn) installBtn.style.display = 'none';
+          });
+        } else {
+          toast('Tap browser menu (⋮ or Share) > "Add to Home Screen"', 'info');
+        }
+      };
     });
   </script>
 </body>
