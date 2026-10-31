@@ -471,6 +471,7 @@
     let streamSampleRate = 44100;
     let ytPlayer = null;
     let ytSyncInterval = null;
+    let ytScheduledTimeout = null;
     let isYtReady = false;
     let _loadAudioPromise = null;
     let _loadedAudioUrl = null;
@@ -933,6 +934,11 @@
 
       socket.on('playback:scheduled', (data) => {
         log('▶ Received play command — start: ' + data.startAtServerEpochMs, true, 'room-logs');
+        // Stop any existing source before starting new one to prevent double-play / echo
+        if (audioSource) {
+          try { audioSource.stop(); audioSource.disconnect(); } catch(e) {}
+          audioSource = null;
+        }
         handleScheduledPlay(data.startAtServerEpochMs, data.positionMs || 0);
       });
 
@@ -950,12 +956,18 @@
         }
         if (data && data.playbackState && data.playbackState.status === 'playing' && data.playbackState.serverStartAt) {
           const startAtEpoch = Number(data.playbackState.serverStartAt);
-          log('Room is actively playing! Joining in sync...', true, 'room-logs');
-          handleScheduledPlay(startAtEpoch, data.playbackState.positionMs || 0);
+          // Only auto-sync speakers joining mid-play; host is the source of truth and already controls playback
+          if (!isHost) {
+            log('Room is actively playing! Joining in sync...', true, 'room-logs');
+            handleScheduledPlay(startAtEpoch, data.playbackState.positionMs || 0);
+          }
         } else if (data && data.activeYouTube && data.activeYouTube.isPlaying) {
           const yt = data.activeYouTube;
           log('▶ YouTube track actively playing in room! Joining in sync...', true, 'room-logs');
-          loadYouTubeVideo(yt.videoId, yt.title, yt.startAtServerEpochMs, yt.positionSec || 0);
+          // Only speakers load the YouTube player here; host already has it open
+          if (!isHost) {
+            loadYouTubeVideo(yt.videoId, yt.title, yt.startAtServerEpochMs, yt.positionSec || 0);
+          }
         }
       });
 
@@ -1005,6 +1017,9 @@
 
       // ---- LIVE AUDIO STREAM (BROADCAST FROM HOST) WITH JITTER BUFFER ----
       socket.on('stream:audio:start', (data) => {
+        if (isHost) return;
+        cleanupYouTube();
+        if (audioSource) { try { audioSource.stop(); audioSource.disconnect(); } catch(e) {} audioSource = null; }
         log(`🔴 Incoming Live Audio from ${data.senderName || 'Host'}`, true, 'room-logs');
         toast(`🔴 Live broadcast: ${data.title}`, 'info');
         document.getElementById('now-playing-title').innerText = '🔴 ' + (data.title || 'Live Broadcast');
@@ -1021,6 +1036,7 @@
       });
 
       socket.on('stream:audio:chunk', (data) => {
+        if (isHost) return;
         const ctx = getAudioContext();
         if (ctx.state === 'suspended') return;
         const int16Array = new Int16Array(data.chunk);
@@ -1084,7 +1100,7 @@
 
       // ---- SYNCHRONIZED YOUTUBE VIDEO PLAYBACK ----
       socket.on('playback:youtube', (data) => {
-        if (isHost && ytPlayer) return;
+        if (isHost) return;
         log(`▶ Received YouTube track from ${data.senderName || 'Room'}`, true, 'room-logs');
         loadYouTubeVideo(data.videoId, data.title, data.startAtServerEpochMs, data.positionSec || 0);
       });
@@ -1111,7 +1127,7 @@
       });
 
       socket.on('playback:youtube:control', (data) => {
-        if (!ytPlayer) return;
+        if (isHost || !ytPlayer) return;
         try {
           if (data.action === 'play') {
             scheduleYouTubeStart(ytPlayer, data.startAtServerEpochMs, data.positionSec || 0);
@@ -1450,6 +1466,7 @@
 
     function cleanupYouTube() {
       if (ytSyncInterval) { clearInterval(ytSyncInterval); ytSyncInterval = null; }
+      if (ytScheduledTimeout) { clearTimeout(ytScheduledTimeout); ytScheduledTimeout = null; }
       if (ytPlayer) {
         try {
           if (typeof ytPlayer.stopVideo === 'function') ytPlayer.stopVideo();
@@ -1468,6 +1485,7 @@
       box.style.display = 'block';
 
       if (audioSource) { try { audioSource.stop(); audioSource.disconnect(); } catch(e) {} audioSource = null; }
+      if (systemAudioStream) stopLiveBroadcast();
       isPlaying = false;
 
       document.getElementById('now-playing-title').innerText = title || 'YouTube Track';
@@ -1477,7 +1495,7 @@
       startVisualizer();
 
       if (!window.YT || !window.YT.Player) {
-        box.innerHTML = `<iframe id="yt-iframe" width="100%" height="210" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:14px;border:none;"></iframe>`;
+        box.innerHTML = `<iframe id="yt-iframe" width="100%" height="210" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=0&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:14px;border:none;"></iframe>`;
         return;
       }
 
@@ -1489,7 +1507,7 @@
             width: '100%',
             videoId: videoId,
             playerVars: {
-              autoplay: 1,
+              autoplay: 0,
               controls: 1,
               modestbranding: 1,
               rel: 0,
@@ -1514,20 +1532,21 @@
             }
           });
         } catch(e) {
-          box.innerHTML = `<iframe id="yt-iframe" width="100%" height="210" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:14px;border:none;"></iframe>`;
+          box.innerHTML = `<iframe id="yt-iframe" width="100%" height="210" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=0&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:14px;border:none;"></iframe>`;
         }
       } else {
         try {
           ytPlayer.loadVideoById(videoId);
           scheduleYouTubeStart(ytPlayer, startAtEpoch, startPosSec);
         } catch(e) {
-          box.innerHTML = `<iframe id="yt-iframe" width="100%" height="210" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:14px;border:none;"></iframe>`;
+          box.innerHTML = `<iframe id="yt-iframe" width="100%" height="210" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=0&enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="border-radius:14px;border:none;"></iframe>`;
         }
       }
     }
 
     function scheduleYouTubeStart(player, startAtEpoch, startPosSec = 0) {
       if (!player) return;
+      if (ytScheduledTimeout) { clearTimeout(ytScheduledTimeout); ytScheduledTimeout = null; }
       if (!startAtEpoch) {
         try {
           if (startPosSec > 0 && typeof player.seekTo === 'function') player.seekTo(startPosSec, true);
@@ -1547,7 +1566,8 @@
           if (typeof player.seekTo === 'function') player.seekTo(startPosSec, true);
           if (typeof player.pauseVideo === 'function') player.pauseVideo();
         } catch(e) {}
-        setTimeout(() => {
+        ytScheduledTimeout = setTimeout(() => {
+          ytScheduledTimeout = null;
           try {
             if (typeof player.seekTo === 'function') player.seekTo(startPosSec, true);
             if (typeof player.playVideo === 'function') player.playVideo();
@@ -1776,6 +1796,9 @@
       const banner = document.getElementById('tap-to-sync-banner');
       if (banner) banner.style.display = 'none';
 
+      cleanupYouTube();
+      if (systemAudioStream) stopLiveBroadcast();
+
       if (_loadAudioPromise) {
         log('Waiting for track download...', true, 'room-logs');
         await _loadAudioPromise;
@@ -1884,7 +1907,9 @@
     function handleSeek(positionMs) {
       pauseOffset = positionMs / 1000;
       if (isPlaying) {
-        handleScheduledPlay(Date.now() + clockOffset + 100, positionMs);
+        // Use 800ms schedule delay so all devices have time to prepare the new AudioBufferSourceNode
+        const safeClockOffset = Number.isFinite(clockOffset) ? clockOffset : 0;
+        handleScheduledPlay(Date.now() + safeClockOffset + 800, positionMs);
       } else {
         document.getElementById('time-current').innerText = formatTime(pauseOffset);
       }
@@ -1947,7 +1972,7 @@
           document.getElementById('track-dur-badge').innerText = formatTime(audioBuffer.duration);
           toast(`✓ Loaded: "${title}"`, 'success');
           log(`✓ Ready: "${title}" (${audioBuffer.duration.toFixed(1)}s)`, true, 'room-logs');
-          if (currentRoom && authToken) {
+          if (!isHost && currentRoom && authToken) {
             try {
               const res = await fetch('/api/v1/rooms/' + currentRoom.id, { headers: { 'Authorization': 'Bearer ' + authToken } });
               const rData = await res.json();
@@ -2066,6 +2091,9 @@
       // Stop unused video tracks to conserve battery and CPU
       stream.getVideoTracks().forEach(t => t.stop());
 
+      cleanupYouTube();
+      if (audioSource) { try { audioSource.stop(); audioSource.disconnect(); } catch(e) {} audioSource = null; }
+
       const ctx = getAudioContext();
       systemAudioStream = stream;
       systemAudioSource = ctx.createMediaStreamSource(stream);
@@ -2075,7 +2103,12 @@
       streamAudioProcessor = processor;
 
       systemAudioSource.connect(processor);
-      processor.connect(ctx.destination);
+      // Route processor through a silent gain node to activate it without playing back to host speakers
+      // (ScriptProcessor requires connection to destination graph to fire onaudioprocess)
+      const silentOut = ctx.createGain();
+      silentOut.gain.value = 0;
+      processor.connect(silentOut);
+      silentOut.connect(ctx.destination);
 
       audioTracks[0].onended = () => {
         stopLiveBroadcast();
