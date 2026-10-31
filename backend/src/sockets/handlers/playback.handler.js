@@ -196,7 +196,7 @@ const registerPlaybackHandlers = (io, socket) => {
             senderName: session.displayName,
         };
         activeYouTubeRooms.set(data.roomId, ytState);
-        io.to(data.roomId).emit('playback:youtube', ytState);
+        socket.to(data.roomId).emit('playback:youtube', ytState);
     });
     socket.on('playback:youtube:sync', (data) => {
         if (!session || !data.roomId)
@@ -242,7 +242,7 @@ const registerPlaybackHandlers = (io, socket) => {
      */
     socket.on('playback:preset', (data) => {
         if (!session || !data.roomId) return;
-        io.to(data.roomId).emit('playback:preset', {
+        socket.to(data.roomId).emit('playback:preset', {
             presetId: data.presetId,
             title: data.title,
             bpm: data.bpm || 128,

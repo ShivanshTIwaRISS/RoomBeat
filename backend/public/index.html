@@ -1063,6 +1063,7 @@
 
       // ---- CLOUD / CDN BEAT PRESETS ----
       socket.on('playback:preset', (data) => {
+        if (isHost) return;
         cleanupYouTube();
         log(`⚡ Received Cloud Beat: "${data.title}" from ${data.senderName || 'Host'}`, true, 'room-logs');
         toast(`⚡ Host selected: ${data.title}`, 'info');
@@ -1083,6 +1084,7 @@
 
       // ---- SYNCHRONIZED YOUTUBE VIDEO PLAYBACK ----
       socket.on('playback:youtube', (data) => {
+        if (isHost && ytPlayer) return;
         log(`▶ Received YouTube track from ${data.senderName || 'Room'}`, true, 'room-logs');
         loadYouTubeVideo(data.videoId, data.title, data.startAtServerEpochMs, data.positionSec || 0);
       });
@@ -1448,8 +1450,11 @@
 
     function cleanupYouTube() {
       if (ytSyncInterval) { clearInterval(ytSyncInterval); ytSyncInterval = null; }
-      if (ytPlayer && typeof ytPlayer.stopVideo === 'function') {
-        try { ytPlayer.stopVideo(); } catch(e) {}
+      if (ytPlayer) {
+        try {
+          if (typeof ytPlayer.stopVideo === 'function') ytPlayer.stopVideo();
+          if (typeof ytPlayer.destroy === 'function') ytPlayer.destroy();
+        } catch(e) {}
       }
       const box = document.getElementById('yt-player-box');
       if (box) { box.style.display = 'none'; box.innerHTML = ''; }
@@ -1457,11 +1462,12 @@
     }
 
     function loadYouTubeVideo(videoId, title, startAtEpoch = 0, startPosSec = 0) {
+      cleanupYouTube();
       const box = document.getElementById('yt-player-box');
       if (!box) return;
       box.style.display = 'block';
 
-      if (audioSource) { try { audioSource.stop(); } catch(e) {} }
+      if (audioSource) { try { audioSource.stop(); audioSource.disconnect(); } catch(e) {} audioSource = null; }
       isPlaying = false;
 
       document.getElementById('now-playing-title').innerText = title || 'YouTube Track';
@@ -1799,7 +1805,13 @@
 
       log(`[Sync] Start in ${Math.round(rawDelayMs)}ms | HW:${Math.round(hwLatencySec*1000)}ms | Calib:${(safeCalibMs>0?'+':'')+safeCalibMs}ms | RTT:${Math.round(rtt)}ms`, true, 'room-logs');
 
-      if (audioSource) { try { audioSource.stop(); } catch(e) {} }
+      if (audioSource) {
+        try {
+          audioSource.stop();
+          audioSource.disconnect();
+        } catch(e) {}
+        audioSource = null;
+      }
 
       audioSource = ctx.createBufferSource();
       audioSource.buffer = audioBuffer;
@@ -1853,7 +1865,13 @@
     }
 
     function handlePause(positionMs) {
-      if (audioSource) { try { audioSource.stop(); } catch(e) {} }
+      if (audioSource) {
+        try {
+          audioSource.stop();
+          audioSource.disconnect();
+        } catch(e) {}
+        audioSource = null;
+      }
       isPlaying = false;
       pauseOffset = positionMs ? positionMs / 1000 : 0;
       const playBtn = document.getElementById('main-play-btn');
@@ -2057,7 +2075,6 @@
       streamAudioProcessor = processor;
 
       systemAudioSource.connect(processor);
-      systemAudioSource.connect(gainNode || ctx.destination);
       processor.connect(ctx.destination);
 
       audioTracks[0].onended = () => {
@@ -2142,7 +2159,13 @@
     function leaveRoom() {
       cleanupYouTube();
       try { localStorage.removeItem('roombeat_last_room'); } catch(e) {}
-      if (audioSource) { try { audioSource.stop(); } catch(e) {} }
+      if (audioSource) {
+        try {
+          audioSource.stop();
+          audioSource.disconnect();
+        } catch(e) {}
+        audioSource = null;
+      }
       isPlaying = false;
       stopVisualizer();
       if (systemAudioStream) stopLiveBroadcast();
