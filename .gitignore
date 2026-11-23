@@ -28,6 +28,11 @@ backend/uploads/*
 .AppleDouble
 .LSOverride
 
+# APK outputs
+*.apk
+downloaded-apk/
+build-output/
+
 # React Native & Android
 mobile/android/.gradle/
 mobile/android/app/build/
