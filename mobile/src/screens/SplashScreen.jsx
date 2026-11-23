@@ -45,7 +45,7 @@ export const SplashScreen = ({ navigation }) => {
             },
         ]}>
         <View style={styles.logoBadge}>
-          <Text style={styles.logoIcon}>🔊</Text>
+          <Text style={styles.logoIcon}>RB</Text>
         </View>
         <Text style={styles.brandTitle}>RoomBeat</Text>
         <Text style={styles.tagline}>Every Phone. One Beat.</Text>

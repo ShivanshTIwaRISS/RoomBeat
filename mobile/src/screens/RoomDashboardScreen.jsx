@@ -58,7 +58,7 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
       {/* Room Header */}
       <Header title={currentRoom?.name || 'RoomBeat Session'} subtitle={`Code: ${formatRoomCode(currentRoom?.code || '')}`} onBack={handleLeave} rightAction={<View style={styles.headerActions}>
             <TouchableOpacity onPress={() => setQrModalVisible(true)} style={styles.qrHeaderBtn} activeOpacity={0.7}>
-              <Text style={styles.qrIcon}>📱 QR</Text>
+              <Text style={styles.qrIcon}>QR Code</Text>
             </TouchableOpacity>
           </View>}/>
 
@@ -77,23 +77,19 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
         {/* Navigation Action Pills */}
         <View style={styles.pillsRow}>
           <TouchableOpacity style={styles.actionPill} onPress={() => navigation.navigate('MusicLibrary', { roomId })}>
-            <Text style={styles.pillIcon}>📁</Text>
             <Text style={styles.pillLabel}>Library</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionPill} onPress={() => navigation.navigate('Queue', { roomId })}>
-            <Text style={styles.pillIcon}>📑</Text>
             <Text style={styles.pillLabel}>Queue</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionPill} onPress={() => navigation.navigate('DeviceCalibration', { roomId })}>
-            <Text style={styles.pillIcon}>🎛️</Text>
             <Text style={styles.pillLabel}>Calibrate</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.actionPill} onPress={() => navigation.navigate('SyncDashboard', { roomId })}>
-            <Text style={styles.pillIcon}>⚡</Text>
-            <Text style={styles.pillLabel}>Sync</Text>
+            <Text style={styles.pillLabel}>Sync Metrics</Text>
           </TouchableOpacity>
         </View>
 

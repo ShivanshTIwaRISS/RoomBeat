@@ -22,15 +22,14 @@ export const HomeScreen = ({ navigation }) => {
       {/* Top Bar */}
       <View style={styles.topBar}>
         <View style={styles.brandRow}>
-          <Text style={styles.brandLogo}>🔊</Text>
           <Text style={styles.brandName}>RoomBeat</Text>
         </View>
         <View style={styles.topActions}>
           <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.iconBtn} activeOpacity={0.7}>
-            <Text style={styles.btnIcon}>⚙️</Text>
+            <Text style={styles.btnIcon}>Settings</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('Profile')} style={styles.iconBtn} activeOpacity={0.7}>
-            <Text style={styles.btnIcon}>👤</Text>
+            <Text style={styles.btnIcon}>Profile</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -38,9 +37,9 @@ export const HomeScreen = ({ navigation }) => {
       {/* Hero Greeting */}
       <View style={styles.heroSection}>
         <Text style={styles.greetingSubtitle}>
-          Hey {session?.displayName || 'there'} 👋
+          Welcome, {session?.displayName || 'Guest'}
         </Text>
-        <Text style={styles.greetingTitle}>Ready to make some noise?</Text>
+        <Text style={styles.greetingTitle}>Synchronized Wireless Audio</Text>
 
         <View style={styles.waveContainer}>
           <AudioWaveBackground />
@@ -50,7 +49,6 @@ export const HomeScreen = ({ navigation }) => {
       {/* Primary Actions: Create & Join */}
       <View style={styles.actionGrid}>
         <Card style={styles.actionCard} variant="glow">
-          <Text style={styles.actionIcon}>👑</Text>
           <Text style={styles.actionTitle}>Create a Room</Text>
           <Text style={styles.actionDesc}>
             Host a new session and control music for all connected phones.
@@ -59,7 +57,6 @@ export const HomeScreen = ({ navigation }) => {
         </Card>
 
         <Card style={styles.actionCard}>
-          <Text style={styles.actionIcon}>🔗</Text>
           <Text style={styles.actionTitle}>Join a Room</Text>
           <Text style={styles.actionDesc}>
             Scan a host's QR code or enter a 6-character room code to join.

@@ -6,18 +6,18 @@ import { storage } from '../utils/storage';
 const { width } = Dimensions.get('window');
 const SLIDES = [
     {
-        icon: '📱🔊',
-        title: 'Your Phones, One Speaker System',
+        icon: '01',
+        title: 'Distributed Wireless Audio',
         description: 'Transform multiple smartphones in the same room into a unified, high-power distributed wireless speaker system.',
     },
     {
-        icon: '⚡🔗',
-        title: 'Connect Your Crew in Seconds',
+        icon: '02',
+        title: 'Instant Room Pairing',
         description: 'One person creates a room. Everyone joins by scanning a QR code or entering a 6-character room code. No complex pairing.',
     },
     {
-        icon: '⏱️🎵',
-        title: 'Feel Every Beat Together',
+        icon: '03',
+        title: 'NTP Precision Synchronization',
         description: 'Coordinated audio playback using high-precision NTP clock synchronization. Everyone hears the music simultaneously.',
     },
 ];

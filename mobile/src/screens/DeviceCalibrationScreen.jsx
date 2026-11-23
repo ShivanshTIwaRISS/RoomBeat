@@ -54,13 +54,13 @@ export const DeviceCalibrationScreen = ({ navigation, }) => {
           {/* Quick Output Presets (Bluetooth / Phone / Soundbar) */}
           <View style={styles.presetsRow}>
             <TouchableOpacity onPress={() => handleSetPreset(0)} style={[styles.presetBtn, currentCompensation === 0 && styles.presetBtnActive]} activeOpacity={0.7}>
-              <Text style={[styles.presetBtnText, currentCompensation === 0 && styles.presetBtnTextActive]}>📱 Phone</Text>
+              <Text style={[styles.presetBtnText, currentCompensation === 0 && styles.presetBtnTextActive]}>Phone (0ms)</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => handleSetPreset(180)} style={[styles.presetBtn, currentCompensation === 180 && styles.presetBtnActive]} activeOpacity={0.7}>
-              <Text style={[styles.presetBtnText, currentCompensation === 180 && styles.presetBtnTextActive]}>🎧 Bluetooth (+180ms)</Text>
+              <Text style={[styles.presetBtnText, currentCompensation === 180 && styles.presetBtnTextActive]}>Bluetooth (+180ms)</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => handleSetPreset(260)} style={[styles.presetBtn, currentCompensation === 260 && styles.presetBtnActive]} activeOpacity={0.7}>
-              <Text style={[styles.presetBtnText, currentCompensation === 260 && styles.presetBtnTextActive]}>🔊 Soundbar</Text>
+              <Text style={[styles.presetBtnText, currentCompensation === 260 && styles.presetBtnTextActive]}>Soundbar (+260ms)</Text>
             </TouchableOpacity>
           </View>
 

@@ -8,7 +8,7 @@ export const DeviceCard = ({ member, isHostDevice }) => {
       <View style={styles.left}>
         <View style={[styles.avatar, isOnline ? styles.avatarOnline : styles.avatarOffline]}>
           <Text style={styles.avatarIcon}>
-            {member.session.platform === 'android' ? '🤖' : '📱'}
+            {member.session.platform === 'android' ? 'AND' : 'IOS'}
           </Text>
         </View>
         <View>

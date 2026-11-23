@@ -145,7 +145,7 @@
     <!-- SCREEN 0: NAME -->
     <div id="screen-name" class="screen active">
       <div class="name-hero">
-        <div class="logo-big">🔊</div>
+        <div class="logo-big"><svg width="48" height="48" viewBox="0 0 24 24" fill="var(--primary)"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></div>
         <h1>RoomBeat</h1>
         <p>Every phone. One beat.<br>What should we call you?</p>
       </div>
@@ -155,16 +155,16 @@
         <button class="btn btn-secondary" style="margin-top: 8px;" onclick="handleSetName(true)">Continue as Guest</button>
       </div>
       <div id="name-logs" class="log-box" style="margin-top: 16px;">
-        <div class="log-item log-success">✓ Ready to connect</div>
+        <div class="log-item log-success">[SYSTEM] Ready to connect</div>
       </div>
     </div>
 
     <!-- SCREEN 1: HOME -->
     <div id="screen-home" class="screen">
       <div class="header">
-        <div class="brand"><span>🔊</span> RoomBeat</div>
+        <div class="brand"><svg width="20" height="20" viewBox="0 0 24 24" fill="var(--primary)" style="vertical-align:middle;margin-right:6px;"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>RoomBeat</div>
         <div style="display:flex;gap:8px;align-items:center;">
-          <button id="pwa-install-btn" class="btn btn-secondary btn-sm" onclick="installPwa()" style="display:none;width:auto;padding:5px 10px;font-size:11px;border-color:var(--primary);color:var(--primary);">📲 Install App</button>
+          <button id="pwa-install-btn" class="btn btn-secondary btn-sm" onclick="installPwa()" style="display:none;width:auto;padding:5px 10px;font-size:11px;border-color:var(--primary);color:var(--primary);">Install App</button>
           <span id="home-user-chip" style="font-size:12px;color:var(--text-sec);font-weight:600;"></span>
           <span id="home-status-badge" class="badge badge-primary">Connecting...</span>
         </div>
@@ -183,7 +183,7 @@
 
       <!-- Auto-reconnect banner -->
       <div id="reconnect-banner" class="reconnect-banner">
-        <div style="font-size:13px;font-weight:700;margin-bottom:6px;">🔄 Last session found</div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:6px;">Active Session Found</div>
         <div id="reconnect-info" style="font-size:12px;color:var(--text-sec);margin-bottom:10px;"></div>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-primary btn-sm" onclick="doAutoReconnect()" style="flex:1;">Rejoin Room</button>
@@ -192,14 +192,14 @@
       </div>
 
       <div class="card card-glow">
-        <div style="font-size: 28px; margin-bottom: 6px;">👑</div>
+        <div style="margin-bottom: 8px;"><svg width="28" height="28" viewBox="0 0 24 24" fill="var(--primary)"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .55-.45 1-1 1H6c-.55 0-1-.45-1-1v-1h14v1z"/></svg></div>
         <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">Host a Room</h2>
         <p style="font-size: 13px; color: var(--text-sec); margin-bottom: 14px;">Create a room, invite phones, and broadcast synchronized beats.</p>
-        <button id="btn-create-room" class="btn btn-primary" onclick="handleCreateRoomClick()">👑 Create Room Now</button>
+        <button id="btn-create-room" class="btn btn-primary" onclick="handleCreateRoomClick()">Create Room</button>
       </div>
 
       <div class="card">
-        <div style="font-size: 28px; margin-bottom: 6px;">🔗</div>
+        <div style="margin-bottom: 8px;"><svg width="28" height="28" viewBox="0 0 24 24" fill="var(--primary)"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></div>
         <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">Join a Room</h2>
         <p style="font-size: 13px; color: var(--text-sec); margin-bottom: 14px;">Enter a 6-character room code to join as a speaker.</p>
         <div style="display: flex; gap: 8px;">
@@ -210,12 +210,12 @@
 
       <!-- Recent Rooms -->
       <div class="recent-rooms-section" id="recent-rooms-section" style="display:none;">
-        <div class="recent-label">⏱ Recent Rooms</div>
+        <div class="recent-label">Recent Rooms</div>
         <div id="recent-rooms-list"></div>
       </div>
 
       <div id="home-logs" class="log-box">
-        <div class="log-item log-success">✓ Ready to connect</div>
+        <div class="log-item log-success">[SYSTEM] Ready to connect</div>
       </div>
     </div>
 
@@ -227,7 +227,7 @@
           <div id="dash-room-code" style="font-size: 13px; color: var(--primary); font-family: monospace; font-weight: 700; letter-spacing: 1px;">CODE: ------</div>
         </div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-secondary btn-sm" onclick="openQrModal()" title="Share Room">📲 Share</button>
+          <button class="btn btn-secondary btn-sm" onclick="openQrModal()" title="Share Room">Share</button>
           <button class="btn btn-secondary btn-sm" onclick="leaveRoom()">Exit</button>
         </div>
       </div>
@@ -235,7 +235,7 @@
       <!-- Sync Diagnostics -->
       <div class="card" style="padding: 12px; margin-bottom: 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <span style="font-size: 12px; font-weight: 700;">⚡ Audio Sync Engine</span>
+          <span style="font-size: 12px; font-weight: 700;">Audio Sync Engine</span>
           <span id="sync-health-badge" class="badge badge-success">ACTIVE SYNC</span>
         </div>
         <div class="sync-metrics">
@@ -245,15 +245,15 @@
         </div>
         <div style="margin-top: 10px; background: var(--surface-light); padding: 10px; border-radius: 12px; border: 1px solid var(--border);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <span style="font-size: 11px; font-weight: 700; color: var(--text-sec); text-transform: uppercase;">🎯 Output Mode & Bluetooth Sync</span>
+            <span style="font-size: 11px; font-weight: 700; color: var(--text-sec); text-transform: uppercase;">Output Mode & Bluetooth Sync</span>
             <span id="calib-val" style="font-family: monospace; font-size: 12px; font-weight: 700; color: var(--primary);">0 ms</span>
           </div>
 
           <!-- 1-Tap Output Presets -->
           <div style="display: flex; gap: 6px; margin-bottom: 8px;">
-            <button id="btn-mode-phone" class="btn btn-secondary btn-sm" onclick="setOutputPreset(0)" style="flex:1;padding:5px 4px;font-size:11px;font-weight:700;border-color:var(--primary);color:var(--primary);">📱 Phone (0ms)</button>
-            <button id="btn-mode-bt" class="btn btn-secondary btn-sm" onclick="setOutputPreset(180)" style="flex:1;padding:5px 4px;font-size:11px;font-weight:700;">🎧 Bluetooth (+180ms)</button>
-            <button id="btn-mode-bar" class="btn btn-secondary btn-sm" onclick="setOutputPreset(260)" style="flex:1;padding:5px 4px;font-size:11px;font-weight:700;">🔊 Soundbar (+260ms)</button>
+            <button id="btn-mode-phone" class="btn btn-secondary btn-sm" onclick="setOutputPreset(0)" style="flex:1;padding:5px 4px;font-size:11px;font-weight:700;border-color:var(--primary);color:var(--primary);">Phone (0ms)</button>
+            <button id="btn-mode-bt" class="btn btn-secondary btn-sm" onclick="setOutputPreset(180)" style="flex:1;padding:5px 4px;font-size:11px;font-weight:700;">Bluetooth (+180ms)</button>
+            <button id="btn-mode-bar" class="btn btn-secondary btn-sm" onclick="setOutputPreset(260)" style="flex:1;padding:5px 4px;font-size:11px;font-weight:700;">Soundbar (+260ms)</button>
           </div>
 
           <div style="display: flex; gap: 6px; align-items: center;">
@@ -272,7 +272,7 @@
       <!-- Waveform Visualizer -->
       <div class="visualizer-wrapper">
         <canvas id="visualizer-canvas" width="400" height="400"></canvas>
-        <div id="artwork-emoji" class="artwork-emoji">🎵</div>
+        <div id="artwork-emoji" class="artwork-emoji"><svg width="44" height="44" viewBox="0 0 24 24" fill="rgba(200,255,0,0.5)"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></div>
         <div id="track-dur-badge" class="track-duration-badge">0:00</div>
       </div>
 
@@ -294,21 +294,21 @@
 
       <!-- Controls -->
       <div class="controls-row">
-        <button class="control-btn" onclick="triggerRestart()">⏮</button>
-        <button id="main-play-btn" class="control-btn play-btn" onclick="togglePlay()">▶</button>
-        <button class="control-btn" onclick="triggerNext()">⏭</button>
+        <button class="control-btn" onclick="triggerRestart()" title="Restart"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+        <button id="main-play-btn" class="control-btn play-btn" onclick="togglePlay()"><svg width="24" height="24" viewBox="0 0 24 24" fill="#000"><path d="M8 5v14l11-7z"/></svg></button>
+        <button class="control-btn" onclick="triggerNext()" title="Next"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg></button>
       </div>
 
       <!-- Tap to sync banner -->
       <div id="tap-to-sync-banner" onclick="tapToSyncAudio()">
-        🔔 Tap here to sync audio with the room
+        Tap here to sync audio with the room
       </div>
 
       <!-- Volume -->
       <div class="card" style="padding: 12px; margin-bottom: 12px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
           <div style="font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
-            <span id="volume-icon">🔊</span> Synchronized Master Volume
+            <span id="volume-icon">VOL</span> Synchronized Master Volume
           </div>
           <span id="volume-val-badge" class="badge badge-primary">80%</span>
         </div>
@@ -319,30 +319,30 @@
 
       <!-- Music selection -->
       <div class="card" style="padding: 12px; margin-bottom: 12px;">
-        <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">🎵 Choose / Sync Music</div>
+        <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px;">Choose Audio Source</div>
         <div style="display: flex; gap: 8px; flex-direction: column;">
 
           <!-- Option 0: Fast CDN Cloud Beats & Precision Metronome -->
           <div style="background:linear-gradient(135deg, rgba(200,255,0,0.08), rgba(0,240,255,0.05));border:1px solid rgba(200,255,0,0.3);padding:10px;border-radius:10px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
               <div>
-                <div style="font-size:12px;font-weight:700;color:var(--primary);">⚡ Fast CDN Beats &amp; Metronome</div>
+                <div style="font-size:12px;font-weight:700;color:var(--primary);">Studio Presets &amp; Metronome</div>
                 <div style="font-size:11px;color:var(--text-sec);">Instant zero-download beats &amp; precision phase click</div>
               </div>
               <span class="badge badge-primary" style="font-size:10px;padding:2px 6px;">Zero Latency</span>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;">
-              <button class="btn btn-secondary btn-sm" onclick="selectCdnPreset('metronome')" style="padding:6px;font-size:11px;font-weight:700;">⏱️ Sync Click (120 BPM)</button>
-              <button class="btn btn-secondary btn-sm" onclick="selectCdnPreset('cyberpunk')" style="padding:6px;font-size:11px;font-weight:700;">🥁 Cyberpunk 808 Bass</button>
-              <button class="btn btn-secondary btn-sm" onclick="selectCdnPreset('lofi')" style="padding:6px;font-size:11px;font-weight:700;">🌴 Lo-Fi Chill Hop</button>
-              <button class="btn btn-secondary btn-sm" onclick="selectCdnPreset('club')" style="padding:6px;font-size:11px;font-weight:700;">⚡ Club Dance Drop</button>
+              <button class="btn btn-secondary btn-sm" onclick="selectCdnPreset('metronome')" style="padding:6px;font-size:11px;font-weight:700;">Sync Click (120 BPM)</button>
+              <button class="btn btn-secondary btn-sm" onclick="selectCdnPreset('cyberpunk')" style="padding:6px;font-size:11px;font-weight:700;">Cyberpunk 808 Bass</button>
+              <button class="btn btn-secondary btn-sm" onclick="selectCdnPreset('lofi')" style="padding:6px;font-size:11px;font-weight:700;">Lo-Fi Chill Hop</button>
+              <button class="btn btn-secondary btn-sm" onclick="selectCdnPreset('club')" style="padding:6px;font-size:11px;font-weight:700;">Club Dance Drop</button>
             </div>
           </div>
 
           <!-- Option 1: local file -->
           <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface-light);padding:10px;border-radius:10px;">
             <div>
-              <div style="font-size:12px;font-weight:700;">⚡ Load Same Song on Both Devices</div>
+              <div style="font-size:12px;font-weight:700;">Direct Offline Audio Track</div>
               <div style="font-size:11px;color:var(--text-sec);">Pick audio file on phone &amp; laptop (Instant offline sync)</div>
             </div>
             <label class="btn btn-secondary btn-sm" style="cursor:pointer;width:auto;padding:7px 12px;">
@@ -354,7 +354,7 @@
           <!-- Option 2: upload to server -->
           <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface-light);padding:10px;border-radius:10px;">
             <div>
-              <div style="font-size:12px;font-weight:700;">☁️ Upload &amp; Share to Room</div>
+              <div style="font-size:12px;font-weight:700;">Upload &amp; Share to Room</div>
               <div style="font-size:11px;color:var(--text-sec);">Upload once — everyone downloads automatically</div>
             </div>
             <label class="btn btn-secondary btn-sm" style="cursor:pointer;width:auto;padding:7px 12px;">
@@ -366,7 +366,7 @@
           <!-- Option 3: Live Broadcast (Desktop Tab / Phone Mic / Aux) -->
           <div id="sys-audio-section" style="display:flex;justify-content:space-between;align-items:center;background:var(--surface-light);padding:10px;border-radius:10px;">
             <div>
-              <div style="font-size:12px;font-weight:700;">📡 Live Audio Broadcast (YouTube / Tab / Mic)</div>
+              <div style="font-size:12px;font-weight:700;">Live Audio Broadcast (Tab / Mic)</div>
               <div style="font-size:11px;color:var(--text-sec);">Broadcast live sound to all connected speakers</div>
             </div>
             <div style="display:flex;gap:6px;align-items:center;">
@@ -378,7 +378,7 @@
           <!-- Option 4: YouTube Track Sync -->
           <div style="display:flex;justify-content:space-between;align-items:center;background:var(--surface-light);padding:10px;border-radius:10px;">
             <div>
-              <div style="font-size:12px;font-weight:700;">▶ Sync YouTube Track</div>
+              <div style="font-size:12px;font-weight:700;">Synchronized YouTube Player</div>
               <div style="font-size:11px;color:var(--text-sec);">Enter YouTube link to play together in sync on all phones</div>
             </div>
             <button class="btn btn-secondary btn-sm" style="width:auto;padding:7px 12px;" onclick="openYouTubeModal()">Sync Link</button>
@@ -410,11 +410,11 @@
   <!-- QR Modal -->
   <div id="qr-modal">
     <div class="qr-box">
-      <div style="font-size:18px;font-weight:800;margin-bottom:14px;">📲 Share Room</div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:14px;">Share Room</div>
       <img id="qr-img" class="qr-code-img" src="" alt="QR Code">
       <div id="qr-room-code-display" class="qr-room-code"></div>
       <div class="qr-actions">
-        <button class="btn btn-secondary" onclick="copyRoomCode()">📋 Copy Code</button>
+        <button class="btn btn-secondary" onclick="copyRoomCode()">Copy Code</button>
         <button class="btn btn-primary" onclick="closeQrModal()">Done</button>
       </div>
     </div>
@@ -423,7 +423,7 @@
   <!-- YouTube Sync Modal -->
   <div id="yt-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;align-items:center;justify-content:center;">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:24px;max-width:340px;width:90%;text-align:center;">
-      <div style="font-size:20px;font-weight:800;margin-bottom:8px;">▶ Sync YouTube Track</div>
+      <div style="font-size:20px;font-weight:800;margin-bottom:8px;">Synchronized YouTube Player</div>
       <p style="font-size:12px;color:var(--text-sec);margin-bottom:16px;">Paste any YouTube URL or Video ID. It will play in sync across all phones in the room.</p>
       <input id="input-yt-url" class="input" type="text" placeholder="https://www.youtube.com/watch?v=..." style="font-size:13px;margin-bottom:14px;text-align:center;">
       <div style="display:flex;gap:8px;">
@@ -506,6 +506,19 @@
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       const t = document.getElementById(id);
       if (t) t.classList.add('active');
+    }
+
+    
+    function updatePlayBtnUI(playing) {
+      const btn = document.getElementById('main-play-btn');
+      if (!btn) return;
+      if (playing) {
+        btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="#000"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
+        btn.style.background = 'var(--primary)';
+      } else {
+        btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="#000"><path d="M8 5v14l11-7z"/></svg>';
+        btn.style.background = 'var(--primary)';
+      }
     }
 
     function formatTime(secs) {
@@ -593,7 +606,7 @@
       const ctx = getAudioContext();
       try {
         log('⬇ Downloading: ' + title, true, 'room-logs');
-        document.getElementById('now-playing-title').innerText = '⏳ Syncing Audio...';
+        document.getElementById('now-playing-title').innerText = 'Syncing Audio...';
         document.getElementById('now-playing-artist').innerText = title;
         const res = await fetch(url);
         if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -607,11 +620,11 @@
         document.getElementById('now-playing-artist').innerText = artist;
         document.getElementById('time-total').innerText = formatTime(audioBuffer.duration);
         document.getElementById('track-dur-badge').innerText = formatTime(audioBuffer.duration);
-        toast(`📡 Track loaded: "${title}"`, 'info');
-        log(`✓ Audio ready: "${title}" (${audioBuffer.duration.toFixed(1)}s)`, true, 'room-logs');
+        toast(`[TRACK] Loaded: "${title}"`, 'info');
+        log(`[AUDIO READY] "${title}" (${audioBuffer.duration.toFixed(1)}s)`, true, 'room-logs');
         return audioBuffer;
       } catch (err) {
-        log('⚠ Failed loading track: ' + err.message, false, 'room-logs');
+        log('[NOTICE] Failed loading track: ' + err.message, false, 'room-logs');
         if (!audioBuffer) { generateSynthGroove(); }
         return audioBuffer;
       } finally {
@@ -736,19 +749,19 @@
       let artist = 'RoomBeat Audio Engine';
       if (presetId === 'metronome') {
         buf = generateMetronomeTrack(120, 30);
-        title = '⏱️ Sync Metronome Click (120 BPM)';
+        title = 'Sync Metronome Click (120 BPM)';
         artist = 'RoomBeat Precision Calibration';
       } else if (presetId === 'cyberpunk') {
         buf = generateCyberpunkBassTrack(128, 30);
-        title = '🥁 Cyberpunk 808 Bass Anthem';
+        title = 'Cyberpunk 808 Bass Anthem';
         artist = 'RoomBeat CDN EDM';
       } else if (presetId === 'lofi') {
         buf = generateLofiTrack(84, 30);
-        title = '🌴 Lo-Fi Chill Hop';
+        title = 'Lo-Fi Chill Hop';
         artist = 'RoomBeat CDN Chill';
       } else {
         buf = generateClubDanceTrack(130, 30);
-        title = '⚡ Club Dance Drop (130 BPM)';
+        title = 'Club Dance Drop (130 BPM)';
         artist = 'RoomBeat CDN Dance';
       }
       audioBuffer = buf;
@@ -756,8 +769,8 @@
       document.getElementById('now-playing-artist').innerText = artist;
       document.getElementById('time-total').innerText = formatTime(30);
       document.getElementById('track-dur-badge').innerText = formatTime(30);
-      toast(`⚡ Loaded ${title}! Ready to play in sync.`, 'success');
-      log(`⚡ Ready: "${title}" across all devices`, true, 'room-logs');
+      toast(`Loaded ${title}! Ready to play in sync.`, 'success');
+      log(`[PRESET] Ready: "${title}" across all devices`, true, 'room-logs');
 
       // Broadcast to all speakers in room so they pre-load identical buffer
       if (socket && currentRoom) {
@@ -803,7 +816,7 @@
             const badge = document.getElementById('home-status-badge');
             if (badge) badge.innerText = 'Ready';
             const chip = document.getElementById('home-user-chip');
-            if (chip) chip.innerText = '👤 ' + currentSession.displayName;
+            if (chip) chip.innerText = currentSession.displayName;
             return authToken;
           }
         } catch(e) { /* token stale — fall through to create new */ }
@@ -832,7 +845,7 @@
         const badge = document.getElementById('home-status-badge');
         if (badge) badge.innerText = 'Ready';
         const chip = document.getElementById('home-user-chip');
-        if (chip) chip.innerText = '👤 ' + currentSession.displayName;
+        if (chip) chip.innerText = currentSession.displayName;
         return authToken;
       } catch (err) {
         log('Auth error: ' + err.message, false);
@@ -909,7 +922,7 @@
       });
 
       socket.on('playback:prepare', async (data) => {
-        log(`📡 Receiving track: "${data.title}"`, true, 'room-logs');
+        log(`[TRACK] Receiving: "${data.title}"`, true, 'room-logs');
         audioBuffer = null; _loadedAudioUrl = null; _loadAudioPromise = null;
         await loadAudioFromUrl(data.trackUrl, data.title, data.artist);
       });
@@ -922,18 +935,18 @@
         const badge = document.getElementById('volume-val-badge');
         if (badge) badge.innerText = volPct + '%';
         const icon = document.getElementById('volume-icon');
-        if (icon) icon.innerText = volPct === 0 ? '🔇' : volPct < 40 ? '🔉' : '🔊';
+        if (icon) icon.innerText = volPct === 0 ? 'MUTE' : volPct < 40 ? 'VOL' : 'VOL';
         roomVolume = data.volume;
         if (audioCtx && gainNode) { gainNode.gain.setTargetAtTime(roomVolume, audioCtx.currentTime, 0.03); }
         if (ytPlayer && typeof ytPlayer.setVolume === 'function') { try { ytPlayer.setVolume(volPct); } catch(e) {} }
         if (data.senderId !== (currentSession && currentSession.id)) {
-          toast(`🔊 Volume synced: ${volPct}% by ${data.senderName || 'Room'}`, 'info');
-          log(`🔊 Volume synced: ${volPct}%`, true, 'room-logs');
+          toast(`Volume synced: ${volPct}% by ${data.senderName || 'Room'}`, 'info');
+          log(`Volume synced: ${volPct}%`, true, 'room-logs');
         }
       });
 
       socket.on('playback:scheduled', (data) => {
-        log('▶ Received play command — start: ' + data.startAtServerEpochMs, true, 'room-logs');
+        log('[PLAY] Start at server epoch: ' + data.startAtServerEpochMs, true, 'room-logs');
         // Stop any existing source before starting new one to prevent double-play / echo
         if (audioSource) {
           try { audioSource.stop(); audioSource.disconnect(); } catch(e) {}
@@ -963,7 +976,7 @@
           }
         } else if (data && data.activeYouTube && data.activeYouTube.isPlaying) {
           const yt = data.activeYouTube;
-          log('▶ YouTube track actively playing in room! Joining in sync...', true, 'room-logs');
+          log('[YOUTUBE] Room playing actively — syncing...', true, 'room-logs');
           // Only speakers load the YouTube player here; host already has it open
           if (!isHost) {
             loadYouTubeVideo(yt.videoId, yt.title, yt.startAtServerEpochMs, yt.positionSec || 0);
@@ -974,13 +987,13 @@
       socket.on('room:device:joined', (data) => {
         if (data.sessionId !== (currentSession && currentSession.id)) {
           addSpeakerRow(data);
-          toast(`📱 ${data.displayName} joined the room`, 'success');
+          toast(`${data.displayName} joined the room`, 'success');
         }
       });
 
       socket.on('room:device:left', (data) => {
         removeSpeakerRow(data.sessionId);
-        toast(`📴 ${data.displayName || 'Someone'} left the room`, 'info');
+        toast(`${data.displayName || 'Device'} left the room`, 'info');
       });
 
       socket.on('room:device:updated', (data) => {
@@ -997,8 +1010,8 @@
       socket.on('room:host_changed', (data) => {
         if (currentSession && data.newHostId === currentSession.id) {
           isHost = true;
-          toast('👑 You are now the Room Host!', 'success');
-          log('👑 You are now the Room Host!', true, 'room-logs');
+          toast('[HOST] You are now the Room Host', 'success');
+          log('[HOST] You are now the Room Host', true, 'room-logs');
           renderSpeakerList();
           const sysSection = document.getElementById('sys-audio-section');
           if (sysSection) sysSection.style.display = 'flex';
@@ -1006,13 +1019,13 @@
       });
 
       socket.on('room:closed', () => {
-        toast('⚠ Room was closed by host', 'error');
+        toast('[NOTICE] Room was closed by host', 'error');
         setTimeout(() => leaveRoom(), 2000);
       });
 
       socket.on('server:error', (data) => {
         log('Server error: ' + data.message, false, 'room-logs');
-        toast('⚠ ' + data.message, 'error');
+        toast('[NOTICE] ' + data.message, 'error');
       });
 
       // ---- LIVE AUDIO STREAM (BROADCAST FROM HOST) WITH JITTER BUFFER ----
@@ -1020,9 +1033,9 @@
         if (isHost) return;
         cleanupYouTube();
         if (audioSource) { try { audioSource.stop(); audioSource.disconnect(); } catch(e) {} audioSource = null; }
-        log(`🔴 Incoming Live Audio from ${data.senderName || 'Host'}`, true, 'room-logs');
-        toast(`🔴 Live broadcast: ${data.title}`, 'info');
-        document.getElementById('now-playing-title').innerText = '🔴 ' + (data.title || 'Live Broadcast');
+        log(`[LIVE STREAM] Incoming from ${data.senderName || 'Host'}`, true, 'room-logs');
+        toast(`Live broadcast: ${data.title}`, 'info');
+        document.getElementById('now-playing-title').innerText = (data.title || 'Live Broadcast');
         document.getElementById('now-playing-artist').innerText = 'Streaming from ' + (data.senderName || 'Host');
         const ctx = getAudioContext();
         streamSampleRate = data.sampleRate || ctx.sampleRate || 44100;
@@ -1031,7 +1044,7 @@
         streamPlayTime = 0;
         isPlaying = true;
         const playBtn = document.getElementById('main-play-btn');
-        if (playBtn) { playBtn.innerText = '🔴'; playBtn.style.background = 'var(--text)'; }
+        updatePlayBtnUI(true);
         startVisualizer();
       });
 
@@ -1066,13 +1079,13 @@
       });
 
       socket.on('stream:audio:stop', () => {
-        toast('⏹ Live broadcast ended', 'info');
+        toast('Live broadcast ended', 'info');
         stopVisualizer();
         isPlaying = false;
         streamJitterBuffer = [];
         isStreamBuffering = true;
         const playBtn = document.getElementById('main-play-btn');
-        if (playBtn) { playBtn.innerText = '▶'; playBtn.style.background = 'var(--primary)'; }
+        updatePlayBtnUI(false);
         document.getElementById('now-playing-title').innerText = 'Synchronized Beat';
         document.getElementById('now-playing-artist').innerText = 'RoomBeat Audio Engine';
       });
@@ -1081,8 +1094,8 @@
       socket.on('playback:preset', (data) => {
         if (isHost) return;
         cleanupYouTube();
-        log(`⚡ Received Cloud Beat: "${data.title}" from ${data.senderName || 'Host'}`, true, 'room-logs');
-        toast(`⚡ Host selected: ${data.title}`, 'info');
+        log(`[PRESET] Received: "${data.title}" from ${data.senderName || 'Host'}`, true, 'room-logs');
+        toast(`Host selected: ${data.title}`, 'info');
         if (data.presetId === 'metronome') {
           audioBuffer = generateMetronomeTrack(120, 30);
         } else if (data.presetId === 'cyberpunk') {
@@ -1101,7 +1114,7 @@
       // ---- SYNCHRONIZED YOUTUBE VIDEO PLAYBACK ----
       socket.on('playback:youtube', (data) => {
         if (isHost) return;
-        log(`▶ Received YouTube track from ${data.senderName || 'Room'}`, true, 'room-logs');
+        log(`[YOUTUBE] Received track from ${data.senderName || 'Room'}`, true, 'room-logs');
         loadYouTubeVideo(data.videoId, data.title, data.startAtServerEpochMs, data.positionSec || 0);
       });
 
@@ -1138,7 +1151,7 @@
             }
             isPlaying = false;
             const playBtn = document.getElementById('main-play-btn');
-            if (playBtn) { playBtn.innerText = '▶'; playBtn.style.background = 'var(--primary)'; }
+            updatePlayBtnUI(false);
           } else if (data.action === 'seek') {
             if (typeof ytPlayer.seekTo === 'function') ytPlayer.seekTo(data.positionSec || 0, true);
           }
@@ -1248,7 +1261,7 @@
         item.className = 'recent-room-item';
         item.innerHTML = `
           <div class="recent-room-info">
-            <div class="recent-room-name">${r.isHost ? '👑' : '📱'} ${r.name}</div>
+            <div class="recent-room-name">${r.isHost ? '[HOST]' : '[SPEAKER]'} ${r.name}</div>
             <div class="recent-room-meta">CODE: <strong style="color:var(--primary);font-family:monospace;">${r.code}</strong> · ${timeAgo(r.lastJoined)}</div>
           </div>
           <button class="btn btn-secondary btn-sm" onclick="rejoinRoom('${r.code}')" style="margin-left:8px;white-space:nowrap;">Rejoin</button>
@@ -1301,7 +1314,7 @@
     // ============================================================
     async function handleCreateRoomClick() {
       const btn = document.getElementById('btn-create-room');
-      if (btn) { btn.innerText = '⏳ Creating...'; btn.disabled = true; }
+      if (btn) { btn.innerText = 'Creating...'; btn.disabled = true; }
       try {
         try { getAudioContext(); } catch(e) {}
         const token = await ensureSession('Host');
@@ -1317,13 +1330,13 @@
         if (socket) socket.emit('room:join', { roomId: currentRoom.id });
         saveRecentRoom(currentRoom, true);
         try { localStorage.setItem('roombeat_last_room', JSON.stringify({ roomId: currentRoom.id, roomCode: currentRoom.code, isHost: true })); } catch(e) {}
-        toast('✓ Room created! Code: ' + currentRoom.code, 'success');
+        toast('[ROOM] Created code: ' + currentRoom.code, 'success');
         enterRoom();
       } catch (err) {
         console.error('Create room error:', err);
-        toast('⚠ ' + err.message, 'error');
+        toast('[NOTICE] ' + err.message, 'error');
       } finally {
-        if (btn) { btn.innerText = '👑 Create Room Now'; btn.disabled = false; }
+        if (btn) { btn.innerText = 'Create Room Now'; btn.disabled = false; }
       }
     }
 
@@ -1334,7 +1347,7 @@
       const input = document.getElementById('input-join-code-quick');
       const code = input.value.trim().toUpperCase();
       if (!code || code.length < 4) {
-        toast('⚠ Enter a valid room code', 'error');
+        toast('[NOTICE] Enter a valid room code', 'error');
         input.focus();
         return;
       }
@@ -1355,11 +1368,11 @@
         if (socket) socket.emit('room:join', { roomId: currentRoom.id });
         saveRecentRoom(currentRoom, isHost);
         try { localStorage.setItem('roombeat_last_room', JSON.stringify({ roomId: currentRoom.id, roomCode: currentRoom.code, isHost })); } catch(e) {}
-        toast('✓ Joined room ' + currentRoom.code, 'success');
+        toast('[ROOM] Joined ' + currentRoom.code, 'success');
         enterRoom();
       } catch (err) {
         console.error('Join error:', err);
-        toast('⚠ ' + err.message, 'error');
+        toast('[NOTICE] ' + err.message, 'error');
       } finally {
         btn.innerText = 'Join Room'; btn.disabled = false;
       }
@@ -1372,7 +1385,7 @@
       document.getElementById('dash-room-name').innerText = currentRoom.name;
       document.getElementById('dash-room-code').innerText = 'ROOM CODE: ' + currentRoom.code;
       const playBtn = document.getElementById('main-play-btn');
-      if (playBtn) { playBtn.innerText = isPlaying ? '⏸' : '▶'; playBtn.style.background = isPlaying ? 'var(--text)' : 'var(--primary)'; }
+      updatePlayBtnUI(isPlaying);
       updateCalibrationUI();
       const slider = document.getElementById('room-volume-slider');
       if (slider) slider.value = Math.round(roomVolume * 100);
@@ -1405,10 +1418,10 @@
     function copyRoomCode() {
       if (!currentRoom) return;
       const inviteUrl = `${window.location.origin}/?code=${currentRoom.code}`;
-      navigator.clipboard.writeText(inviteUrl).then(() => toast('📋 Invite link copied!', 'success')).catch(() => {
+      navigator.clipboard.writeText(inviteUrl).then(() => toast('Invite link copied', 'success')).catch(() => {
         const ta = document.createElement('textarea');
         ta.value = inviteUrl; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
-        toast('📋 Invite link copied!', 'success');
+        toast('Invite link copied', 'success');
       });
     }
 
@@ -1441,7 +1454,7 @@
       const url = input ? input.value : '';
       const videoId = extractYouTubeId(url);
       if (!videoId) {
-        toast('⚠ Please enter a valid YouTube URL or 11-char ID', 'error');
+        toast('[NOTICE] Please enter a valid YouTube URL or 11-char ID', 'error');
         return;
       }
       closeYouTubeModal();
@@ -1490,8 +1503,8 @@
 
       document.getElementById('now-playing-title').innerText = title || 'YouTube Track';
       document.getElementById('now-playing-artist').innerText = isHost ? 'YouTube Host' : 'YouTube Synced Speaker';
-      toast('▶ Synced YouTube video with room!', 'success');
-      log(`▶ Synced YouTube: "${videoId}"`, true, 'room-logs');
+      toast('Synced YouTube video with room', 'success');
+      log(`[YOUTUBE] Synced: "${videoId}"`, true, 'room-logs');
       startVisualizer();
 
       if (!window.YT || !window.YT.Player) {
@@ -1521,12 +1534,12 @@
                 if (event.data === YT.PlayerState.PLAYING) {
                   isPlaying = true;
                   const playBtn = document.getElementById('main-play-btn');
-                  if (playBtn) { playBtn.innerText = '⏸'; playBtn.style.background = 'var(--text)'; }
+                  updatePlayBtnUI(true);
                   if (isHost) startHostYtSyncLoop();
                 } else if (event.data === YT.PlayerState.PAUSED) {
                   isPlaying = false;
                   const playBtn = document.getElementById('main-play-btn');
-                  if (playBtn) { playBtn.innerText = '▶'; playBtn.style.background = 'var(--primary)'; }
+                  updatePlayBtnUI(false);
                 }
               }
             }
@@ -1612,7 +1625,7 @@
       if (pBtn) { pBtn.style.borderColor = ms === 0 ? 'var(--primary)' : 'var(--border)'; pBtn.style.color = ms === 0 ? 'var(--primary)' : 'var(--text-sec)'; }
       if (bBtn) { bBtn.style.borderColor = ms === 180 ? 'var(--primary)' : 'var(--border)'; bBtn.style.color = ms === 180 ? 'var(--primary)' : 'var(--text-sec)'; }
       if (sBtn) { sBtn.style.borderColor = ms === 260 ? 'var(--primary)' : 'var(--border)'; sBtn.style.color = ms === 260 ? 'var(--primary)' : 'var(--text-sec)'; }
-      toast(ms === 0 ? '📱 Phone Speaker mode (0ms)' : ms === 180 ? '🎧 Bluetooth mode (+180ms delay compensated)' : '🔊 Soundbar mode (+260ms delay compensated)', 'info');
+      toast(ms === 0 ? 'Phone Speaker mode (0ms)' : ms === 180 ? 'Bluetooth mode (+180ms delay compensated)' : 'Soundbar mode (+260ms delay compensated)', 'info');
     }
 
     function nudgeCalibration(delta) {
@@ -1634,7 +1647,7 @@
       const badge = document.getElementById('volume-val-badge');
       if (badge) badge.innerText = numVal + '%';
       const icon = document.getElementById('volume-icon');
-      if (icon) icon.innerText = numVal === 0 ? '🔇' : numVal < 40 ? '🔉' : '🔊';
+      if (icon) icon.innerText = numVal === 0 ? 'MUTE' : numVal < 40 ? 'VOL' : 'VOL';
       if (audioCtx && gainNode) { gainNode.gain.setTargetAtTime(roomVolume, audioCtx.currentTime, 0.02); }
       if (ytPlayer && typeof ytPlayer.setVolume === 'function') { try { ytPlayer.setVolume(numVal); } catch(e) {} }
       if (emitSocket && socket && currentRoom) {
@@ -1650,7 +1663,7 @@
       list.innerHTML = `
         <div class="device-row">
           <div class="device-info">
-            <span class="device-icon">${isHost ? '👑' : '📱'}</span>
+            <span class="device-icon">${isHost ? '[HOST]' : '[SPEAKER]'}</span>
             <div>
               <div class="device-name">${currentSession ? currentSession.displayName : 'This Device'} ${isHost ? '(Host)' : ''}</div>
               <div class="device-meta">${/Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'Mobile Phone' : 'Mac/PC'} · Ready</div>
@@ -1670,7 +1683,7 @@
       item.className = 'device-row'; item.id = 'speaker-' + data.sessionId;
       item.innerHTML = `
         <div class="device-info">
-          <span class="device-icon">${data.role === 'HOST' ? '👑' : '📱'}</span>
+          <span class="device-icon">${data.role === 'HOST' ? '[HOST]' : '[SPEAKER]'}</span>
           <div>
             <div class="device-name">${data.displayName}</div>
             <div class="device-meta">${data.deviceName || 'Device'} · Speaker</div>
@@ -1681,7 +1694,7 @@
       list.appendChild(item);
       const count = document.querySelectorAll('.device-row').length;
       document.getElementById('speaker-count').innerText = count + ' speaker' + (count !== 1 ? 's' : '');
-      log('📱 ' + data.displayName + ' joined', true, 'room-logs');
+      log('[CONNECTED] ' + data.displayName + ' joined', true, 'room-logs');
     }
 
     function removeSpeakerRow(sessionId) {
@@ -1788,7 +1801,7 @@
         pendingScheduledPlay = { startAtServerEpochMs, startPositionMs };
         const banner = document.getElementById('tap-to-sync-banner');
         if (banner) banner.style.display = 'block';
-        log('🔔 Mobile audio locked — tap the yellow banner to sync!', false, 'room-logs');
+        log('Audio playback locked by browser — tap to enable.', false, 'room-logs');
         return;
       }
 
@@ -1844,10 +1857,10 @@
         if (isPlaying) {
           isPlaying = false;
           const playBtn = document.getElementById('main-play-btn');
-          if (playBtn) { playBtn.innerText = '▶'; playBtn.style.background = 'var(--primary)'; }
+          updatePlayBtnUI(false);
           if (animFrame) cancelAnimationFrame(animFrame);
           stopVisualizer();
-          toast('⏹ Track ended', 'info');
+          toast('Track ended', 'info');
         }
       };
 
@@ -1878,10 +1891,10 @@
         playbackStartTime = targetCtxTime - offsetSec;
         isPlaying = true;
         const playBtn = document.getElementById('main-play-btn');
-        if (playBtn) { playBtn.innerText = '⏸'; playBtn.style.background = 'var(--text)'; }
+        updatePlayBtnUI(true);
         startProgressBar();
         startVisualizer();
-        log(`▶ Playing "${document.getElementById('now-playing-title').innerText}" in sync!`, true, 'room-logs');
+        log(`[PLAYING] "${document.getElementById('now-playing-title').innerText}" in sync!`, true, 'room-logs');
       } catch (playErr) {
         log('Playback start error: ' + playErr.message, false, 'room-logs');
       }
@@ -1898,7 +1911,7 @@
       isPlaying = false;
       pauseOffset = positionMs ? positionMs / 1000 : 0;
       const playBtn = document.getElementById('main-play-btn');
-      if (playBtn) { playBtn.innerText = '▶'; playBtn.style.background = 'var(--primary)'; }
+      updatePlayBtnUI(false);
       if (animFrame) cancelAnimationFrame(animFrame);
       stopVisualizer();
       log('Paused at ' + pauseOffset.toFixed(1) + 's', true, 'room-logs');
@@ -1955,8 +1968,8 @@
       const ctx = getAudioContext();
       if (ctx.state === 'suspended') { try { await ctx.resume(); } catch(err) {} }
       const title = file.name.replace(/\.[^/.]+$/, '');
-      log(`⚡ Decoding: "${title}"...`, true, 'room-logs');
-      document.getElementById('now-playing-title').innerText = '⏳ Decoding Local File...';
+      log(`[DECODE] Decoding: "${title}"...`, true, 'room-logs');
+      document.getElementById('now-playing-title').innerText = 'Decoding Local File...';
       document.getElementById('now-playing-artist').innerText = title;
       const reader = new FileReader();
       reader.onload = async function(evt) {
@@ -1970,8 +1983,8 @@
           document.getElementById('now-playing-artist').innerText = 'Local Audio (' + (isHost ? 'Host' : 'Speaker') + ')';
           document.getElementById('time-total').innerText = formatTime(audioBuffer.duration);
           document.getElementById('track-dur-badge').innerText = formatTime(audioBuffer.duration);
-          toast(`✓ Loaded: "${title}"`, 'success');
-          log(`✓ Ready: "${title}" (${audioBuffer.duration.toFixed(1)}s)`, true, 'room-logs');
+          toast(`[LOADED] "${title}"`, 'success');
+          log(`[READY] "${title}" (${audioBuffer.duration.toFixed(1)}s)`, true, 'room-logs');
           if (!isHost && currentRoom && authToken) {
             try {
               const res = await fetch('/api/v1/rooms/' + currentRoom.id, { headers: { 'Authorization': 'Bearer ' + authToken } });
@@ -1984,7 +1997,7 @@
             } catch(fetchErr) {}
           }
         } catch (err) {
-          toast('⚠ Could not decode audio: ' + err.message, 'error');
+          toast('[NOTICE] Could not decode audio: ' + err.message, 'error');
           log('Decode error: ' + err.message, false, 'room-logs');
         }
       };
@@ -1998,8 +2011,8 @@
       const file = e.target.files[0];
       if (!file || !currentRoom) return;
       const title = file.name.replace(/\.[^/.]+$/, '');
-      log(`⬆ Uploading "${title}" to room...`, true, 'room-logs');
-      document.getElementById('now-playing-title').innerText = '⏳ Uploading...';
+      log(`[UPLOAD] Uploading "${title}" to room...`, true, 'room-logs');
+      document.getElementById('now-playing-title').innerText = 'Uploading...';
       document.getElementById('now-playing-artist').innerText = title;
       try {
         const formData = new FormData();
@@ -2015,14 +2028,14 @@
         const data = await res.json();
         if (!data.success) throw new Error(data.message || 'Upload failed');
         const track = data.data;
-        toast(`✓ Uploaded "${track.title}" — syncing...`, 'success');
-        log('✓ Uploaded! Broadcasting to all devices...', true, 'room-logs');
+        toast(`Uploaded "${track.title}" — syncing...`, 'success');
+        log('[UPLOADED] Broadcasting to all devices...', true, 'room-logs');
         audioBuffer = null; _loadedAudioUrl = null; _loadAudioPromise = null;
         if (socket) {
           socket.emit('host:playback:prepare', { roomId: currentRoom.id, trackId: track.id });
         }
       } catch (err) {
-        toast('⚠ Upload failed: ' + err.message, 'error');
+        toast('[NOTICE] Upload failed: ' + err.message, 'error');
         log('Upload failed: ' + err.message, false, 'room-logs');
       }
     }
@@ -2069,7 +2082,7 @@
             }
           });
           mode = 'mic';
-          toast('🎙 Capturing microphone / audio input', 'info');
+          toast('Capturing microphone audio input', 'info');
         } catch (err) {
           if (err.name === 'NotAllowedError') return;
           console.warn('getUserMedia failed:', err.message);
@@ -2077,13 +2090,13 @@
       }
 
       if (!stream) {
-        toast('⚠ Audio capture not supported on this browser/origin. Try Chrome on localhost or File Upload/YouTube.', 'error');
+        toast('[NOTICE] Audio capture not supported on this browser/origin. Try Chrome on localhost or File Upload/YouTube.', 'error');
         return;
       }
 
       const audioTracks = stream.getAudioTracks();
       if (!audioTracks.length) {
-        toast('⚠ No audio track detected. When sharing a tab, make sure "Share audio" is checked!', 'error');
+        toast('[NOTICE] No audio track detected. When sharing a tab, make sure "Share audio" is checked!', 'error');
         stream.getTracks().forEach(t => t.stop());
         return;
       }
@@ -2120,8 +2133,8 @@
       document.getElementById('now-playing-title').innerText = title;
       document.getElementById('now-playing-artist').innerText = 'Broadcasting to All Speakers';
 
-      toast('📡 Broadcasting live sound to all devices in sync!', 'success');
-      log('📡 Live broadcast active (' + mode + ') — streaming to all room phones', true, 'room-logs');
+      toast('Broadcasting live sound to all devices in sync', 'success');
+      log('[LIVE STREAM] Active (' + mode + ') — streaming to all room phones', true, 'room-logs');
       startVisualizer();
 
       if (socket && currentRoom) {
@@ -2172,7 +2185,7 @@
       const live = document.getElementById('sys-audio-live');
       if (live) live.style.display = 'none';
       stopVisualizer();
-      toast('🔇 Live broadcast stopped', 'info');
+      toast('Live broadcast stopped', 'info');
     }
 
     // ============================================================
@@ -2210,7 +2223,7 @@
       const joinBtn = document.getElementById('btn-join-room');
       if (joinBtn) { joinBtn.innerText = 'Join Room'; joinBtn.disabled = false; }
       const createBtn = document.getElementById('btn-create-room');
-      if (createBtn) { createBtn.innerText = '👑 Create Room Now'; createBtn.disabled = false; }
+      if (createBtn) { createBtn.innerText = 'Create Room Now'; createBtn.disabled = false; }
       renderRecentRooms();
       showScreen('screen-home');
       log('Left room. Ready to create or rejoin.', true, 'home-logs');
@@ -2287,7 +2300,7 @@
       if (inviteCode && inviteCode.length >= 4) {
         const cleanCode = inviteCode.trim().toUpperCase();
         if (joinInput) joinInput.value = cleanCode;
-        toast('🔗 Auto-joining room ' + cleanCode + '...', 'info');
+        toast('Auto-joining room ' + cleanCode + '...', 'info');
         setTimeout(() => {
           if (currentSession) {
             handleJoinRoomClick();

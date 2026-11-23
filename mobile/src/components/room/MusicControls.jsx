@@ -5,17 +5,17 @@ export const MusicControls = ({ isPlaying, isHost, onPlay, onPause, onPrevious, 
     return (<View style={styles.container}>
       {/* Previous Button */}
       <TouchableOpacity onPress={onPrevious} style={styles.secondaryButton} activeOpacity={0.7}>
-        <Text style={styles.controlIcon}>⏮</Text>
+        <Text style={styles.controlIcon}>|&#9664;</Text>
       </TouchableOpacity>
 
       {/* Play / Pause Main Button */}
       <TouchableOpacity onPress={isPlaying ? onPause : onPlay} style={styles.primaryButton} activeOpacity={0.8}>
-        <Text style={styles.playIcon}>{isPlaying ? '⏸' : '▶'}</Text>
+        <Text style={styles.playIcon}>{isPlaying ? '||' : '&#9654;'}</Text>
       </TouchableOpacity>
 
       {/* Next Button */}
       <TouchableOpacity onPress={onNext} style={styles.secondaryButton} activeOpacity={0.7}>
-        <Text style={styles.controlIcon}>⏭</Text>
+        <Text style={styles.controlIcon}>&#9654;|</Text>
       </TouchableOpacity>
     </View>);
 };

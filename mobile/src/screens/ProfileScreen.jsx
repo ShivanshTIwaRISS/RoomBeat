@@ -10,14 +10,14 @@ export const ProfileScreen = ({ navigation }) => {
     const clearSession = useSessionStore((s) => s.clearSession);
     return (<View style={styles.container}>
       <Header title="User Profile" onBack={() => navigation.goBack()} rightAction={<TouchableOpacity onPress={() => navigation.navigate('Settings')}>
-            <Text style={styles.settingsIcon}>⚙️</Text>
+            <Text style={styles.settingsIcon}>Settings</Text>
           </TouchableOpacity>}/>
 
       <ScrollView contentContainerStyle={styles.content}>
         {/* Profile Card */}
         <Card style={styles.profileCard}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>🎧</Text>
+            <Text style={styles.avatarText}>{session?.displayName ? session.displayName[0].toUpperCase() : 'U'}</Text>
           </View>
           <Text style={styles.name}>{session?.displayName || 'Guest User'}</Text>
           <Text style={styles.badge}>Guest Account</Text>
