@@ -9,7 +9,7 @@ export const NowPlaying = ({ track, positionMs, durationMs, isPlaying, onSeek, }
     return (<View style={styles.container}>
       {/* Artwork Placeholder */}
       <View style={styles.artwork}>
-        <Text style={styles.artworkIcon}>🎵</Text>
+        <Text style={styles.artworkIcon}>NOW PLAYING</Text>
         {isPlaying && <View style={styles.pulseDot}/>}
       </View>
 
@@ -56,7 +56,11 @@ const styles = StyleSheet.create({
         elevation: 8,
     },
     artworkIcon: {
-        fontSize: 64,
+        fontSize: 11,
+        fontWeight: '800',
+        color: colors.primary,
+        letterSpacing: 2,
+        textTransform: 'uppercase',
     },
     pulseDot: {
         position: 'absolute',

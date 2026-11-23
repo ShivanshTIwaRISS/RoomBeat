@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors, typography, spacing } from '../../theme';
 import { Button } from './Button';
-export const EmptyState = ({ icon = '🎵', title, description, actionTitle, onAction, }) => {
+export const EmptyState = ({ icon = 'NO TRACKS', title, description, actionTitle, onAction, }) => {
     return (<View style={styles.container}>
       <Text style={styles.icon}>{icon}</Text>
       <Text style={styles.title}>{title}</Text>
@@ -18,8 +18,17 @@ const styles = StyleSheet.create({
         marginVertical: spacing.lg,
     },
     icon: {
-        fontSize: 44,
+        fontSize: 13,
+        fontWeight: '700',
+        color: colors.textMuted,
+        letterSpacing: 1.5,
+        textTransform: 'uppercase',
         marginBottom: spacing.md,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.xs,
+        borderWidth: 1,
+        borderColor: colors.surfaceBorder,
+        borderRadius: 8,
     },
     title: {
         ...typography.h3,

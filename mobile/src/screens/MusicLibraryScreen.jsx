@@ -62,12 +62,12 @@ export const MusicLibraryScreen = ({ navigation, route, }) => {
       <View style={styles.content}>
         <Input placeholder="Search tracks or artists..." value={search} onChangeText={setSearch} containerStyle={styles.searchBar}/>
 
-        {loading ? (<LoadingSpinner message="Loading room audio files..."/>) : filteredTracks.length === 0 ? (<EmptyState icon="🎵" title="No Tracks Yet" description={isHost
+        {loading ? (<LoadingSpinner message="Loading room audio files..."/>) : filteredTracks.length === 0 ? (<EmptyState icon="NO TRACKS" title="No Tracks Yet" description={isHost
                 ? 'Upload an MP3, WAV, or M4A file from your phone to start playing.'
                 : 'Waiting for the room host to upload tracks.'} actionTitle={isHost ? 'Upload Audio File' : undefined} onAction={isHost ? () => navigation.navigate('UploadMusic', { roomId }) : undefined}/>) : (<FlatList data={filteredTracks} keyExtractor={(item) => item.id} renderItem={({ item }) => (<View style={styles.trackCard}>
                 <TouchableOpacity style={styles.trackInfo} onPress={() => handlePlayNow(item)} activeOpacity={0.7}>
                   <View style={styles.trackIcon}>
-                    <Text style={styles.iconText}>🎵</Text>
+                    <Text style={styles.iconText}>TRACK</Text>
                   </View>
                   <View style={styles.textContainer}>
                     <Text style={styles.trackTitle} numberOfLines={1}>
@@ -126,7 +126,11 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     iconText: {
-        fontSize: 20,
+        fontSize: 9,
+        fontWeight: '800',
+        color: colors.primary,
+        letterSpacing: 1,
+        textTransform: 'uppercase',
     },
     textContainer: {
         flex: 1,
