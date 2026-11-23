@@ -72,7 +72,7 @@ export const UploadMusicScreen = ({ navigation, route, }) => {
       <ScrollView contentContainerStyle={styles.content}>
         {/* File Selection Card */}
         <Card style={styles.pickerCard}>
-          <Text style={styles.pickerIcon}>📁</Text>
+          <Text style={styles.pickerIcon}>AUDIO FILE</Text>
           <Text style={styles.pickerTitle}>
             {selectedFile ? selectedFile.name : 'Choose Audio File'}
           </Text>
@@ -115,8 +115,18 @@ const styles = StyleSheet.create({
         borderStyle: 'dashed',
     },
     pickerIcon: {
-        fontSize: 48,
+        fontSize: 11,
+        fontWeight: '800',
+        color: colors.primary,
+        letterSpacing: 2,
+        textTransform: 'uppercase',
         marginBottom: spacing.sm,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.xs,
+        borderWidth: 1,
+        borderColor: colors.primary,
+        borderRadius: 6,
+        opacity: 0.8,
     },
     pickerTitle: {
         ...typography.h3,
