@@ -52,11 +52,11 @@ class RoomBeatPlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
-        mediaSession?.run {
-            player.release()
-            release()
-            mediaSession = null
+        mediaSession?.let { session ->
+            session.player.release()
+            session.release()
         }
+        mediaSession = null
         player = null
         super.onDestroy()
         Log.d(TAG, "PlaybackService destroyed")
