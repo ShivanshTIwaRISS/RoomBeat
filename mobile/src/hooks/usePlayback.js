@@ -22,9 +22,10 @@ export const usePlayback = () => {
     const play = (customPositionMs) => {
         if (!currentRoom)
             return;
+        usePlaybackStore.getState().setIsPlaying(true);
         const socket = socketService.getSocket();
         const pos = customPositionMs !== undefined ? customPositionMs : positionMs;
-        if (socket) {
+        if (socket && socket.connected) {
             socket.emit('host:playback:play', {
                 roomId: currentRoom.id,
                 positionMs: pos,
@@ -32,18 +33,19 @@ export const usePlayback = () => {
             });
         }
         else {
-            playbackApi.play(currentRoom.id, pos, 3000);
+            playbackApi.play(currentRoom.id, pos, 3000).catch(console.warn);
         }
     };
     const pause = () => {
         if (!currentRoom)
             return;
+        usePlaybackStore.getState().setIsPlaying(false);
         const socket = socketService.getSocket();
-        if (socket) {
+        if (socket && socket.connected) {
             socket.emit('host:playback:pause', { roomId: currentRoom.id });
         }
         else {
-            playbackApi.pause(currentRoom.id);
+            playbackApi.pause(currentRoom.id).catch(console.warn);
         }
     };
     const seek = (newPositionMs) => {

@@ -28,12 +28,12 @@ class SocketService {
         console.log(`[SocketService] Connecting to ${targetUrl}`);
         this.socket = io(targetUrl, {
             auth: { token },
-            transports: ['websocket', 'polling'],
+            transports: ['polling', 'websocket'],
             reconnection: true,
-            reconnectionAttempts: 15,
+            reconnectionAttempts: 20,
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
-            timeout: 10000,
+            timeout: 25000,
         });
         this.socket.on('connect', () => {
             console.log(`[SocketService] Connected! ID: ${this.socket?.id}`);

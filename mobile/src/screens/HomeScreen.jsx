@@ -20,6 +20,9 @@ export const HomeScreen = ({ navigation }) => {
         // Request runtime permissions on Android
         requestAppPermissions().catch(console.warn);
 
+        // Wake up cloud server in background
+        apiClient.get('/health').catch(() => {});
+
         // Ensure guest session exists
         if (!session) {
             createGuest('Music Fan').catch(console.warn);

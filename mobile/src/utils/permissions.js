@@ -9,7 +9,9 @@ export const requestAppPermissions = async () => {
     if (Platform.OS !== 'android') return true;
 
     try {
-        const permissions = [];
+        const permissions = [
+            PermissionsAndroid.PERMISSIONS.CAMERA,
+        ];
 
         // Notification permission for Android 13+ (API 33+)
         if (Platform.Version >= 33) {
