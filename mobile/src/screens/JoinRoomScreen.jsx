@@ -32,8 +32,20 @@ export const JoinRoomScreen = ({ navigation, route }) => {
             navigation.replace('RoomDashboard', { roomId: room.id });
         }
         catch (err) {
+            const isNetErr = err.message?.toLowerCase().includes('network') || err.code === 'NETWORK_ERROR';
             setError(err.message || 'Could not join room. Check the code.');
-            Alert.alert('Join Failed', err.message || 'Could not join room.');
+            if (isNetErr) {
+                Alert.alert(
+                    'Connection Error',
+                    'Cannot connect to RoomBeat server. Ensure your phone and computer are on the same Wi-Fi and verify the Server IP in Settings.',
+                    [
+                        { text: 'Server Settings', onPress: () => navigation.navigate('Settings') },
+                        { text: 'OK', style: 'cancel' }
+                    ]
+                );
+            } else {
+                Alert.alert('Join Failed', err.message || 'Could not join room.');
+            }
         }
         finally {
             setLoading(false);
@@ -61,7 +73,7 @@ export const JoinRoomScreen = ({ navigation, route }) => {
 
         {/* QR Code Option */}
         <Card style={styles.qrCard}>
-          <Text style={styles.qrIcon}>📷</Text>
+          <Text style={styles.qrIcon}>SCAN</Text>
           <Text style={styles.qrTitle}>Scan Host's QR Code</Text>
           <Text style={styles.qrDesc}>
             Join instantaneously by scanning the QR code displayed on the host device.
@@ -107,8 +119,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     qrIcon: {
-        fontSize: 40,
+        fontSize: 11,
+        fontWeight: '800',
+        color: colors.primary,
+        letterSpacing: 2,
         marginBottom: spacing.xs,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: 2,
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: colors.primary,
     },
     qrTitle: {
         ...typography.h3,

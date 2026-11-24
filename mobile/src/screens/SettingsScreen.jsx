@@ -98,7 +98,7 @@ export const SettingsScreen = ({ navigation }) => {
               <Text style={[styles.settingTitle, { color: colors.error }]}>Clear Cached Audio</Text>
               <Text style={styles.settingDesc}>Free up storage space on your device</Text>
             </View>
-            <Text style={styles.actionArrow}>🗑️</Text>
+            <Text style={styles.actionArrow}>Clear</Text>
           </TouchableOpacity>
         </Card>
 
@@ -175,7 +175,9 @@ const styles = StyleSheet.create({
         marginVertical: spacing.sm,
     },
     actionArrow: {
-        fontSize: 18,
+        fontSize: 12,
+        fontWeight: '700',
+        color: colors.error,
     },
     hostInput: {
         flex: 1,

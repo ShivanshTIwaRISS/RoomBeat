@@ -38,8 +38,20 @@ export const CreateRoomScreen = ({ navigation }) => {
             navigation.replace('RoomDashboard', { roomId: room.id });
         }
         catch (err) {
+            const isNetErr = err.message?.toLowerCase().includes('network') || err.code === 'NETWORK_ERROR';
             setError(err.message || 'Failed to create room');
-            Alert.alert('Error', err.message || 'Failed to create room');
+            if (isNetErr) {
+                Alert.alert(
+                    'Connection Error',
+                    'Cannot connect to RoomBeat server. Ensure your phone and computer are on the same Wi-Fi and verify the Server IP in Settings.',
+                    [
+                        { text: 'Server Settings', onPress: () => navigation.navigate('Settings') },
+                        { text: 'OK', style: 'cancel' }
+                    ]
+                );
+            } else {
+                Alert.alert('Error', err.message || 'Failed to create room');
+            }
         }
         finally {
             setLoading(false);

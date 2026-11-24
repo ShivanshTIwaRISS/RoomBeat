@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, borderRadius, typography, spacing } from '../theme';
 import { Button } from '../components/common/Button';
 import { Card } from '../components/common/Card';
@@ -7,16 +8,22 @@ import { AudioWaveBackground } from '../components/home/AudioWaveBackground';
 import { useSessionStore } from '../store/useSessionStore';
 import { storage } from '../utils/storage';
 import { formatRoomCode } from '../utils/formatters';
+import { DEFAULT_DEV_HOST } from '../constants/config';
 export const HomeScreen = ({ navigation }) => {
     const session = useSessionStore((s) => s.session);
     const createGuest = useSessionStore((s) => s.createGuest);
     const [recentRooms, setRecentRooms] = useState([]);
+    const [serverHost, setServerHost] = useState(DEFAULT_DEV_HOST);
+
     useEffect(() => {
         // Ensure guest session exists
         if (!session) {
             createGuest('Music Fan').catch(console.warn);
         }
         storage.getRecentRooms().then(setRecentRooms);
+        AsyncStorage.getItem('roombeat_server_host').then((h) => {
+            if (h) setServerHost(h);
+        }).catch(() => {});
     }, [session, createGuest]);
     return (<ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Top Bar */}
@@ -45,6 +52,19 @@ export const HomeScreen = ({ navigation }) => {
           <AudioWaveBackground />
         </View>
       </View>
+
+      {/* Server Status Pill */}
+      <TouchableOpacity 
+        style={styles.serverPill}
+        onPress={() => navigation.navigate('Settings')}
+        activeOpacity={0.8}
+      >
+        <View style={styles.statusDot} />
+        <Text style={styles.serverPillText}>
+          Server: {serverHost}:3000
+        </Text>
+        <Text style={styles.serverPillAction}>Change</Text>
+      </TouchableOpacity>
 
       {/* Primary Actions: Create & Join */}
       <View style={styles.actionGrid}>
@@ -163,6 +183,36 @@ const styles = StyleSheet.create({
     actionGrid: {
         gap: spacing.md,
         marginVertical: spacing.md,
+    },
+    serverPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.surface,
+        borderRadius: borderRadius.sm,
+        paddingHorizontal: spacing.md,
+        paddingVertical: 8,
+        borderWidth: 1,
+        borderColor: colors.cardBorder,
+        marginBottom: spacing.xs,
+        justifyContent: 'space-between',
+    },
+    statusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: colors.success,
+        marginRight: 8,
+    },
+    serverPillText: {
+        ...typography.small,
+        color: colors.textSecondary,
+        fontFamily: 'Courier',
+        flex: 1,
+    },
+    serverPillAction: {
+        ...typography.small,
+        color: colors.primary,
+        fontWeight: '700',
     },
     actionCard: {
         padding: spacing.lg,
