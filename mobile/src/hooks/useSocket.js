@@ -6,6 +6,8 @@ import { usePlaybackStore } from '../store/usePlaybackStore';
 import { useSyncStore } from '../store/useSyncStore';
 import { storage } from '../utils/storage';
 import { clockSync } from '../sync/ClockSync';
+import { nativeAudio } from '../audio/NativeAudioModule';
+import { getActiveBaseUrl } from '../api/client';
 
 export const useSocket = (roomId) => {
     const token = useSessionStore((s) => s.token);
@@ -16,12 +18,23 @@ export const useSocket = (roomId) => {
     const setIsPlaying = usePlaybackStore((s) => s.setIsPlaying);
     const setIsPrepared = usePlaybackStore((s) => s.setIsPrepared);
     const setPosition = usePlaybackStore((s) => s.setPosition);
+    const setCurrentTrack = usePlaybackStore((s) => s.setCurrentTrack);
     const updateDeviceReport = useSyncStore((s) => s.updateDeviceReport);
     const setLocalMetrics = useSyncStore((s) => s.setLocalMetrics);
 
     useEffect(() => {
         let isMounted = true;
         let reportInterval = null;
+
+        // Subscribe to native ExoPlayer position updates
+        const unsubscribePos = nativeAudio.onPositionUpdate((evt) => {
+            if (!isMounted) return;
+            try {
+                if (evt && typeof evt.positionMs === 'number') {
+                    setPosition(Math.round(evt.positionMs));
+                }
+            } catch (e) {}
+        });
 
         const registerListeners = (sock) => {
             try {
@@ -43,7 +56,7 @@ export const useSocket = (roomId) => {
                 try { if (roomId) sock.emit('room:join', { roomId }); } catch (e) {}
             });
 
-            sock.on('playback:preset', (data) => {
+            sock.on('playback:preset', async (data) => {
                 if (!isMounted) return;
                 try {
                     console.log('[Socket] playback:preset received:', data);
@@ -51,79 +64,138 @@ export const useSocket = (roomId) => {
                         currentTrackId: data.presetId,
                         status: 'prepared',
                     });
+                    const baseUrl = await getActiveBaseUrl();
+                    const serverRoot = baseUrl.replace('/api/v1', '');
+                    const audioUri = `${serverRoot}/demo.wav`;
+                    await nativeAudio.prepare(audioUri);
+                    setIsPrepared(true);
+                    setCurrentTrack({
+                        id: data.presetId || 'preset-demo',
+                        title: data.title || 'Studio Preset Beat',
+                        artist: data.senderName || 'RoomBeat Studio',
+                        durationMs: (data.durationSec || 30) * 1000,
+                    });
                 } catch (e) { console.warn('[Socket] preset error:', e); }
             });
 
             sock.on('room:device:joined', (data) => {
                 if (!isMounted) return;
-                try { addMember(data); } catch (e) {}
+                try {
+                    addMember(data);
+                } catch (e) {
+                    console.warn('[Socket] device joined handler error:', e);
+                }
             });
 
             sock.on('room:device:left', (data) => {
                 if (!isMounted) return;
-                try { removeMember(data.sessionId); } catch (e) {}
+                try { removeMember(data?.sessionId || data?.id); } catch (e) {}
             });
 
             sock.on('room:device:updated', (data) => {
                 if (!isMounted) return;
-                try { updateMember(data.sessionId, data); } catch (e) {}
+                try { updateMember(data?.sessionId || data?.id, data); } catch (e) {}
             });
 
             sock.on('playback:prepare', async (data) => {
                 if (!isMounted) return;
-                console.log('[Socket] playback:prepare for track:', data.trackId);
+                console.log('[Socket] playback:prepare for track:', data?.trackId);
                 setIsPrepared(false);
                 try {
-                    // loadTrack doesn't exist on AudioManager; use prepareTrack if data has enough info
-                    if (data.track && data.track.id && data.track.filename) {
-                        const { audioManager } = require('../audio/AudioManager');
-                        await audioManager.prepareTrack(data.track.id, data.track.filename);
-                    }
+                    const baseUrl = await getActiveBaseUrl();
+                    const serverRoot = baseUrl.replace('/api/v1', '');
+                    const audioUri = data?.trackUrl 
+                        ? (data.trackUrl.startsWith('http') ? data.trackUrl : `${serverRoot}${data.trackUrl}`)
+                        : data?.trackId 
+                            ? `${baseUrl}/tracks/${data.trackId}/audio`
+                            : `${serverRoot}/demo.wav`;
+
+                    await nativeAudio.prepare(audioUri);
                     setIsPrepared(true);
+
+                    if (data?.title) {
+                        setCurrentTrack({
+                            id: data.trackId,
+                            title: data.title,
+                            artist: data.artist || 'RoomBeat Audio',
+                            durationMs: data.durationMs || 180000,
+                        });
+                    }
                 } catch (e) {
-                    console.warn('[Socket] Failed to pre-cache track:', e);
+                    console.warn('[Socket] Failed to prepare track:', e);
                 }
             });
 
-            sock.on('playback:scheduled', (data) => {
+            sock.on('playback:scheduled', async (data) => {
                 if (!isMounted) return;
                 try {
-                    console.log('[Socket] playback:scheduled at server time:', data.serverStartAt);
+                    console.log('[Socket] playback:scheduled at server time:', data?.startAtServerEpochMs || data?.serverStartAt);
                     setIsPlaying(true);
-                } catch (e) { console.warn('[Socket] scheduled error:', e); }
+                    if (data?.positionMs !== undefined) {
+                        setPosition(data.positionMs);
+                    }
+
+                    // Compute target monotonic time using NTP clock offset
+                    const serverEpochMs = Number(data?.startAtServerEpochMs || data?.serverStartAt || Date.now() + 3000);
+                    const targetMonotonicMs = await clockSync.serverEpochToLocalMonotonic(serverEpochMs);
+                    const pos = Number(data?.positionMs) || 0;
+
+                    // Ensure native player has media prepared
+                    try {
+                        const baseUrl = await getActiveBaseUrl();
+                        const serverRoot = baseUrl.replace('/api/v1', '');
+                        const audioUri = data?.trackId 
+                            ? `${baseUrl}/tracks/${data.trackId}/audio` 
+                            : `${serverRoot}/demo.wav`;
+                        await nativeAudio.prepare(audioUri);
+                    } catch (prepErr) {}
+
+                    // Schedule playback with native high-precision timer
+                    await nativeAudio.schedulePlay(pos, targetMonotonicMs);
+                } catch (e) {
+                    console.warn('[Socket] scheduled play error, playing immediately:', e);
+                    try {
+                        await nativeAudio.play();
+                    } catch (playErr) {}
+                }
             });
 
-            sock.on('playback:pause', (data) => {
+            sock.on('playback:pause', async (data) => {
                 if (!isMounted) return;
                 try {
                     setIsPlaying(false);
-                    if (data.positionMs !== undefined) {
+                    if (data?.positionMs !== undefined) {
                         setPosition(data.positionMs);
                     }
+                    await nativeAudio.pause();
                 } catch (e) { console.warn('[Socket] pause error:', e); }
             });
 
-            sock.on('playback:seek', (data) => {
+            sock.on('playback:seek', async (data) => {
                 if (!isMounted) return;
                 try {
-                    setPosition(data.positionMs);
+                    if (data?.positionMs !== undefined) {
+                        setPosition(data.positionMs);
+                        await nativeAudio.seek(data.positionMs);
+                    }
                 } catch (e) { console.warn('[Socket] seek error:', e); }
             });
 
-            sock.on('playback:stop', () => {
+            sock.on('playback:stop', async () => {
                 if (!isMounted) return;
                 try {
                     setIsPlaying(false);
                     setPosition(0);
+                    await nativeAudio.stop();
                 } catch (e) { console.warn('[Socket] stop error:', e); }
             });
 
             sock.on('sync:updated', (report) => {
                 if (!isMounted) return;
-                try { updateDeviceReport(report); } catch (e) {}
+                try { updateDeviceReport(report?.sessionId, report); } catch (e) {}
             });
 
-            // Sync reporting — purely safe, no async calls
+            // Sync reporting
             reportInterval = setInterval(() => {
                 if (!isMounted) return;
                 try {
@@ -181,6 +253,7 @@ export const useSocket = (roomId) => {
         return () => {
             isMounted = false;
             if (reportInterval) clearInterval(reportInterval);
+            try { unsubscribePos(); } catch (e) {}
             try {
                 const sock = socketService.getSocket();
                 if (sock && roomId) {

@@ -3,21 +3,27 @@ import { View, Text, StyleSheet } from 'react-native';
 import { colors, borderRadius, typography, spacing } from '../../theme';
 import { Badge } from '../common/Badge';
 export const DeviceCard = ({ member, isHostDevice }) => {
-    const isOnline = member.session.connectionStatus === 'online';
+    const session = member?.session || member || {};
+    const isOnline = session.connectionStatus !== 'offline';
+    const isHost = member?.role === 'HOST' || isHostDevice;
+    const displayName = session.displayName || member?.displayName || 'Speaker Device';
+    const deviceName = session.deviceName || member?.deviceName || 'Mobile Speaker';
+    const platform = String(session.platform || member?.platform || 'android').toLowerCase();
+
     return (<View style={styles.card}>
       <View style={styles.left}>
         <View style={[styles.avatar, isOnline ? styles.avatarOnline : styles.avatarOffline]}>
           <Text style={styles.avatarIcon}>
-            {member.session.platform === 'android' ? 'AND' : 'IOS'}
+            {platform.includes('ios') ? 'IOS' : 'AND'}
           </Text>
         </View>
         <View>
           <View style={styles.nameRow}>
-            <Text style={styles.name}>{member.session.displayName}</Text>
-            {member.role === 'HOST' && <Badge label="Host" variant="primary"/>}
+            <Text style={styles.name}>{displayName}</Text>
+            {isHost && <Badge label="Host" variant="primary"/>}
           </View>
           <Text style={styles.deviceModel}>
-            {member.session.deviceName || 'Speaker Device'}
+            {deviceName}
           </Text>
         </View>
       </View>

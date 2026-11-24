@@ -1,6 +1,30 @@
 import { create } from 'zustand';
 import { roomsApi } from '../api/rooms';
 import { storage } from '../utils/storage';
+const normalizeMember = (m) => {
+    if (!m) return null;
+    const sessionId = m.sessionId || m.id || '';
+    const session = m.session || {
+        id: sessionId,
+        displayName: m.displayName || 'Speaker',
+        deviceName: m.deviceName || 'Mobile Device',
+        platform: m.platform || 'android',
+        connectionStatus: 'online',
+    };
+    return {
+        ...m,
+        sessionId,
+        role: m.role || 'SPEAKER',
+        session: {
+            id: session.id || sessionId,
+            displayName: session.displayName || m.displayName || 'Speaker',
+            deviceName: session.deviceName || m.deviceName || 'Mobile Device',
+            platform: session.platform || m.platform || 'android',
+            connectionStatus: session.connectionStatus || 'online',
+        },
+    };
+};
+
 export const useRoomStore = create((set, get) => ({
     currentRoom: null,
     members: [],
@@ -9,21 +33,24 @@ export const useRoomStore = create((set, get) => ({
     error: null,
     setRoom: (room, hostSessionId, currentSessionId) => {
         const isHost = hostSessionId === currentSessionId;
-        set({ currentRoom: room, isHost, members: room.members || [] });
+        const normalizedMembers = (room?.members || []).map(normalizeMember).filter(Boolean);
+        set({ currentRoom: room, isHost, members: normalizedMembers });
         storage.addRecentRoom({ id: room.id, name: room.name, code: room.code });
     },
     setMembers: (members) => {
-        set({ members });
+        set({ members: (members || []).map(normalizeMember).filter(Boolean) });
     },
     addMember: (member) => {
+        const normalized = normalizeMember(member);
+        if (!normalized) return;
         set((state) => {
-            const exists = state.members.some((m) => m.sessionId === member.sessionId);
+            const exists = state.members.some((m) => m.sessionId === normalized.sessionId);
             if (exists) {
                 return {
-                    members: state.members.map((m) => (m.sessionId === member.sessionId ? member : m)),
+                    members: state.members.map((m) => (m.sessionId === normalized.sessionId ? normalized : m)),
                 };
             }
-            return { members: [...state.members, member] };
+            return { members: [...state.members, normalized] };
         });
     },
     removeMember: (sessionId) => {
@@ -35,10 +62,12 @@ export const useRoomStore = create((set, get) => ({
         set((state) => ({
             members: state.members.map((m) => {
                 if (m.sessionId === sessionId) {
+                    const existingSession = m.session || {};
                     return {
                         ...m,
+                        ...updates,
                         session: {
-                            ...m.session,
+                            ...existingSession,
                             ...updates,
                         },
                     };

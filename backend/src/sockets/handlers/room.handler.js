@@ -39,6 +39,12 @@ const registerRoomHandlers = (io, socket) => {
                 deviceName: session.deviceName,
                 role: room.hostSessionId === session.id ? 'HOST' : 'SPEAKER',
                 memberCount: room.members.length,
+                session: {
+                    id: session.id,
+                    displayName: session.displayName,
+                    deviceName: session.deviceName,
+                    connectionStatus: 'online',
+                },
             });
             // Send initial state to the joined client
             socket.emit('room:joined', {

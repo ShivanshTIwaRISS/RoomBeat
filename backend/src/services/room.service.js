@@ -51,6 +51,37 @@ class RoomService {
                 playbackState: true,
             },
         });
+
+        // Seed default demo track for seamless instant playback out-of-the-box
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const demoPath = path.resolve(__dirname, '../../public/demo.wav');
+            if (fs.existsSync(demoPath)) {
+                const stat = fs.statSync(demoPath);
+                const demoTrack = await database_1.prisma.track.create({
+                    data: {
+                        roomId: room.id,
+                        filename: 'demo.wav',
+                        title: 'RoomBeat Synchronized Beat',
+                        artist: 'RoomBeat Engine',
+                        durationMs: 30000,
+                        fileSize: stat.size,
+                        mimeType: 'audio/wav',
+                        checksum: 'demo_wav_checksum',
+                        storagePath: demoPath,
+                        uploadedBy: hostSessionId,
+                    },
+                });
+                await database_1.prisma.playbackState.update({
+                    where: { roomId: room.id },
+                    data: { currentTrackId: demoTrack.id },
+                });
+            }
+        } catch (seedErr) {
+            console.warn('[RoomService] Default track seed warning:', seedErr);
+        }
+
         return room;
     }
     /**

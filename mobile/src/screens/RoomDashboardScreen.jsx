@@ -14,7 +14,10 @@ import { useSyncStore } from '../store/useSyncStore';
 import { useSocket } from '../hooks/useSocket';
 import { usePlayback } from '../hooks/usePlayback';
 import { roomsApi } from '../api/rooms';
+import { tracksApi } from '../api/tracks';
 import { formatRoomCode } from '../utils/formatters';
+import { nativeAudio } from '../audio/NativeAudioModule';
+import { getActiveBaseUrl } from '../api/client';
 
 // Conditionally import QRCode — if the native module is missing, fall back gracefully
 let QRCode = null;
@@ -36,6 +39,9 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
     const isPlaying = usePlaybackStore((s) => s.isPlaying);
     const positionMs = usePlaybackStore((s) => s.positionMs);
     const durationMs = usePlaybackStore((s) => s.durationMs);
+    const setCurrentTrack = usePlaybackStore((s) => s.setCurrentTrack);
+    const setDuration = usePlaybackStore((s) => s.setDuration);
+    const setIsPrepared = usePlaybackStore((s) => s.setIsPrepared);
     const clockOffsetMs = useSyncStore((s) => s.clockOffsetMs);
     const roundTripTimeMs = useSyncStore((s) => s.roundTripTimeMs);
     const playbackDriftMs = useSyncStore((s) => s.playbackDriftMs);
@@ -43,6 +49,54 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
     const session = useSessionStore((s) => s.session);
     const playbackControls = usePlayback();
     const [qrModalVisible, setQrModalVisible] = useState(false);
+
+    useEffect(() => {
+        if (!roomId) return;
+        // Fetch tracks or initialize default demo track for instant synchronized playback
+        tracksApi.getRoomTracks(roomId).then(async (res) => {
+            const list = res?.data || res || [];
+            if (Array.isArray(list) && list.length > 0) {
+                const first = list[0];
+                setCurrentTrack(first);
+                setDuration(first.durationMs || 30000);
+                try {
+                    const baseUrl = await getActiveBaseUrl();
+                    const audioUri = `${baseUrl}/tracks/${first.id}/audio`;
+                    await nativeAudio.prepare(audioUri);
+                    setIsPrepared(true);
+                } catch (e) {}
+            } else {
+                // Default synchronized demo beat
+                setCurrentTrack({
+                    id: 'preset-demo',
+                    title: 'RoomBeat Synchronized Beat',
+                    artist: 'RoomBeat Engine',
+                    durationMs: 30000,
+                });
+                setDuration(30000);
+                try {
+                    const baseUrl = await getActiveBaseUrl();
+                    const serverRoot = baseUrl.replace('/api/v1', '');
+                    await nativeAudio.prepare(`${serverRoot}/demo.wav`);
+                    setIsPrepared(true);
+                } catch (e) {}
+            }
+        }).catch(async () => {
+            setCurrentTrack({
+                id: 'preset-demo',
+                title: 'RoomBeat Synchronized Beat',
+                artist: 'RoomBeat Engine',
+                durationMs: 30000,
+            });
+            setDuration(30000);
+            try {
+                const baseUrl = await getActiveBaseUrl();
+                const serverRoot = baseUrl.replace('/api/v1', '');
+                await nativeAudio.prepare(`${serverRoot}/demo.wav`);
+                setIsPrepared(true);
+            } catch (e) {}
+        });
+    }, [roomId, setCurrentTrack, setDuration, setIsPrepared]);
     useEffect(() => {
         // Fetch latest room info — fully defensive
         if (!roomId) return;

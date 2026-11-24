@@ -51,19 +51,26 @@ export const SyncDashboardScreen = ({ navigation, route, }) => {
         <Text style={styles.sectionTitle}>Connected Devices Timing</Text>
 
         {members.map((member) => {
-            const liveReport = deviceReports[member.sessionId];
+            const sid = member?.sessionId || member?.id || '';
+            const liveReport = deviceReports?.[sid];
             const offset = liveReport?.clockOffsetMs ?? 0;
             const rtt = liveReport?.roundTripTimeMs ?? 0;
             const drift = liveReport?.playbackDriftMs ?? 0;
-            return (<Card key={member.sessionId} style={styles.deviceSyncCard}>
+            const session = member?.session || member || {};
+            const isOnline = session.connectionStatus !== 'offline';
+            const displayName = session.displayName || member?.displayName || 'Speaker';
+            const deviceName = session.deviceName || member?.deviceName || 'Mobile Device';
+            const role = member?.role || 'SPEAKER';
+
+            return (<Card key={sid || Math.random().toString()} style={styles.deviceSyncCard}>
               <View style={styles.cardHeader}>
                 <View>
-                  <Text style={styles.deviceName}>{member.session.displayName}</Text>
+                  <Text style={styles.deviceName}>{displayName}</Text>
                   <Text style={styles.deviceModel}>
-                    {member.session.deviceName} • {member.role}
+                    {deviceName} • {role}
                   </Text>
                 </View>
-                <Badge label={member.session.connectionStatus === 'online' ? 'Active' : 'Offline'} variant={member.session.connectionStatus === 'online' ? 'success' : 'muted'}/>
+                <Badge label={isOnline ? 'Active' : 'Offline'} variant={isOnline ? 'success' : 'muted'}/>
               </View>
 
               <View style={styles.metricsRow}>
