@@ -15,10 +15,12 @@ import { useSocket } from '../hooks/useSocket';
 import { usePlayback } from '../hooks/usePlayback';
 import { roomsApi } from '../api/rooms';
 import { tracksApi } from '../api/tracks';
+import { playbackApi } from '../api/playback';
 import { formatRoomCode } from '../utils/formatters';
 import { nativeAudio } from '../audio/NativeAudioModule';
 import { getActiveBaseUrl } from '../api/client';
 import { storage } from '../utils/storage';
+import { clockSync } from '../sync/ClockSync';
 
 // Conditionally import QRCode — if the native module is missing, fall back gracefully
 let QRCode = null;
@@ -114,6 +116,89 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
             } catch (e) { console.warn('[RoomDashboard] setRoom error:', e); }
         }).catch(() => {});
     }, [roomId, setRoom, session]);
+
+    // Backup sync & drift-correction poller: guarantees second phone plays & stays in sync
+    // even if a Socket.IO event was missed or delayed on mobile networks.
+    useEffect(() => {
+        if (!roomId) return;
+        let cancelled = false;
+        const syncStateFromServer = async () => {
+            try {
+                const res = await playbackApi.getState(roomId);
+                if (cancelled) return;
+                const ps = res?.data || res;
+                if (!ps || !ps.status) return;
+
+                const baseUrl = await getActiveBaseUrl();
+                const serverRoot = baseUrl.replace('/api/v1', '');
+                const trackId = ps.currentTrackId;
+                const isPreset = !trackId || String(trackId).startsWith('preset-');
+                const audioUri = isPreset ? `${serverRoot}/demo.wav` : `${baseUrl}/tracks/${trackId}/audio`;
+
+                // Update track info if track changed on server
+                const storeTrack = usePlaybackStore.getState().currentTrack;
+                if (trackId && storeTrack?.id !== trackId) {
+                    try {
+                        const tRes = await tracksApi.getTrack(trackId);
+                        const tData = tRes?.data || tRes;
+                        if (tData?.id) {
+                            setCurrentTrack(tData);
+                            setDuration(tData.durationMs || 180000);
+                        }
+                    } catch (e) {}
+                    await nativeAudio.prepare(audioUri);
+                    setIsPrepared(true);
+                }
+
+                const diag = await nativeAudio.getPlaybackDiagnostics();
+                if (diag?.playbackState === 'buffering') return;
+
+                if (ps.status === 'playing' && ps.serverStartAt) {
+                    const serverStartMs = Number(ps.serverStartAt);
+                    const serverNow = Date.now() + (clockSync.clockOffset || 0);
+                    const rawElapsed = serverNow - serverStartMs;
+                    const basePos = Number(ps.positionMs) || 0;
+
+                    if (rawElapsed < 0) {
+                        // Scheduled in the near future
+                        if (!diag?.isPlaying) {
+                            await nativeAudio.prepare(audioUri);
+                            const targetMono = await clockSync.serverEpochToLocalMonotonic(serverStartMs);
+                            await nativeAudio.schedulePlay(basePos, targetMono);
+                            usePlaybackStore.getState().setIsPlaying(true);
+                        }
+                    } else {
+                        const expectedPos = basePos + rawElapsed;
+                        if (diag?.durationMs > 0 && expectedPos >= diag.durationMs) return;
+                        if (!diag?.isPlaying) {
+                            await nativeAudio.prepare(audioUri);
+                            if (expectedPos > 100) await nativeAudio.seek(expectedPos);
+                            await nativeAudio.play();
+                            usePlaybackStore.getState().setIsPlaying(true);
+                            usePlaybackStore.getState().setPosition(expectedPos);
+                        } else {
+                            // Drift correction: snap if >350ms out of sync with host/server
+                            const drift = Math.abs((diag.positionMs || 0) - expectedPos);
+                            if (drift > 350) {
+                                await nativeAudio.seek(expectedPos);
+                            }
+                        }
+                    }
+                } else if (ps.status === 'paused' || ps.status === 'idle') {
+                    if (diag?.isPlaying) {
+                        await nativeAudio.pause();
+                        usePlaybackStore.getState().setIsPlaying(false);
+                    }
+                }
+            } catch (e) {}
+        };
+
+        const interval = setInterval(syncStateFromServer, 2500);
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
+    }, [roomId, setCurrentTrack, setDuration, setIsPrepared]);
     const handleLeave = () => {
         Alert.alert(isHost ? 'Close Room' : 'Leave Room', isHost ? 'Are you sure you want to close this room for all speakers?' : 'Disconnect from this session?', [
             { text: 'Cancel', style: 'cancel' },

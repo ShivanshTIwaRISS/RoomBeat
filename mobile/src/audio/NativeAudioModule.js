@@ -16,9 +16,8 @@ class NativeAudioBridge {
         return !!this.currentPreparedUri;
     }
     async prepareIfNeeded(trackUri) {
-        if (this.currentPreparedUri === trackUri) {
-            return true;
-        }
+        // Native module safely skips if trackUri is already STATE_READY or STATE_BUFFERING,
+        // and recovers automatically if ExoPlayer returned to STATE_IDLE.
         return this.prepare(trackUri);
     }
     async getMonotonicTimeMs() {

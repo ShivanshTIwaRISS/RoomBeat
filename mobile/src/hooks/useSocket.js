@@ -203,13 +203,18 @@ export const useSocket = (roomId) => {
                 if (!isMounted) return;
                 try {
                     console.log('[Socket] playback:scheduled at server time:', data?.startAtServerEpochMs || data?.serverStartAt);
+                    const serverEpochMs = Number(data?.startAtServerEpochMs || data?.serverStartAt || Date.now() + 1500);
+                    setPlaybackState({
+                        status: 'playing',
+                        serverStartAt: serverEpochMs,
+                        currentTrackId: data?.trackId || usePlaybackStore.getState().currentTrack?.id || null,
+                    });
                     setIsPlaying(true);
                     if (data?.positionMs !== undefined) {
                         setPosition(data.positionMs);
                     }
 
                     // Compute target monotonic time using NTP clock offset
-                    const serverEpochMs = Number(data?.startAtServerEpochMs || data?.serverStartAt || Date.now() + 1500);
                     const targetMonotonicMs = await clockSync.serverEpochToLocalMonotonic(serverEpochMs);
                     const pos = Number(data?.positionMs) || 0;
 
