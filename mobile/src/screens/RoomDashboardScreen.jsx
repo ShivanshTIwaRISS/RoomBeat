@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, } from 'react-native';
-import QRCode from 'react-native-qrcode-svg';
 import { colors, borderRadius, typography, spacing } from '../theme';
 import { Header } from '../components/common/Header';
 import { NowPlaying } from '../components/room/NowPlaying';
@@ -16,8 +15,17 @@ import { useSocket } from '../hooks/useSocket';
 import { usePlayback } from '../hooks/usePlayback';
 import { roomsApi } from '../api/rooms';
 import { formatRoomCode } from '../utils/formatters';
+
+// Conditionally import QRCode — if the native module is missing, fall back gracefully
+let QRCode = null;
+try {
+    QRCode = require('react-native-qrcode-svg').default;
+} catch (e) {
+    console.warn('[RoomDashboard] react-native-qrcode-svg not available');
+}
+
 export const RoomDashboardScreen = ({ navigation, route, }) => {
-    const { roomId } = route.params;
+    const { roomId } = route?.params || {};
     // Initialize socket lifecycle
     useSocket(roomId);
     const currentRoom = useRoomStore((s) => s.currentRoom);
@@ -36,13 +44,16 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
     const playbackControls = usePlayback();
     const [qrModalVisible, setQrModalVisible] = useState(false);
     useEffect(() => {
-        // Fetch latest room info
+        // Fetch latest room info — fully defensive
+        if (!roomId) return;
         roomsApi.getById(roomId).then((res) => {
-            const data = res.data || res;
-            if (data && data.id) {
-                setRoom(data, data.hostSessionId, session?.id || '');
-            }
-        }).catch(console.warn);
+            try {
+                const data = res?.data || res;
+                if (data && data.id) {
+                    setRoom(data, data.hostSessionId, session?.id || '');
+                }
+            } catch (e) { console.warn('[RoomDashboard] setRoom error:', e); }
+        }).catch(() => {});
     }, [roomId, setRoom, session?.id]);
     const handleLeave = () => {
         Alert.alert(isHost ? 'Close Room' : 'Leave Room', isHost ? 'Are you sure you want to close this room for all speakers?' : 'Disconnect from this session?', [
@@ -107,7 +118,11 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
             </Text>
 
             <View style={styles.qrWrapper}>
-              <QRCode value={`roombeat://join?code=${currentRoom?.code || ''}`} size={200} backgroundColor="transparent" color={colors.primary}/>
+              {QRCode ? (
+                <QRCode value={`roombeat://join?code=${currentRoom?.code || ''}`} size={200} backgroundColor="transparent" color={colors.primary}/>
+              ) : (
+                <Text style={styles.roomCodeDisplay}>{formatRoomCode(currentRoom?.code || '')}</Text>
+              )}
             </View>
 
             <Text style={styles.roomCodeDisplay}>

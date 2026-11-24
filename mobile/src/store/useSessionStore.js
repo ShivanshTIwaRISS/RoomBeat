@@ -1,6 +1,19 @@
 import { create } from 'zustand';
 import { Platform } from 'react-native';
-import { v4 as uuidv4 } from 'uuid';
+// uuid v4 may crash in React Native Hermes; use safe fallback
+const generateId = () => {
+    try {
+        const { v4 } = require('uuid');
+        return v4();
+    } catch (e) {
+        // Fallback: generate a pseudo-UUID
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            const v = c === 'x' ? r : (r & 0x3) | 0x8;
+            return v.toString(16);
+        });
+    }
+};
 import { storage } from '../utils/storage';
 import { sessionsApi } from '../api/sessions';
 export const useSessionStore = create((set, get) => ({
@@ -39,7 +52,7 @@ export const useSessionStore = create((set, get) => ({
             set({ isLoading: true, error: null });
             let deviceId = await storage.getDeviceId();
             if (!deviceId) {
-                deviceId = uuidv4();
+                deviceId = generateId();
                 await storage.setDeviceId(deviceId);
             }
             const deviceName = `${Platform.OS === 'android' ? 'Android' : 'iOS'} Device`;

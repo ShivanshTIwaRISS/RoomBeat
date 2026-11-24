@@ -46,6 +46,14 @@ export const storage = {
     async setDeviceId(deviceId) {
         return AsyncStorage.setItem('@roombeat:device_id', deviceId);
     },
+    async clearSession() {
+        try {
+            await AsyncStorage.removeItem(STORAGE_KEYS.TOKEN);
+            await AsyncStorage.removeItem(STORAGE_KEYS.SESSION);
+        } catch (e) {
+            console.warn('[storage] clearSession error:', e);
+        }
+    },
     async getHasSeenOnboarding() {
         const raw = await AsyncStorage.getItem(STORAGE_KEYS.HAS_SEEN_ONBOARDING);
         return raw === 'true';

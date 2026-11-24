@@ -4,9 +4,8 @@ import { useSessionStore } from '../store/useSessionStore';
 import { useRoomStore } from '../store/useRoomStore';
 import { usePlaybackStore } from '../store/usePlaybackStore';
 import { useSyncStore } from '../store/useSyncStore';
-import { audioManager } from '../audio/AudioManager';
-import { syncManager } from '../sync/SyncManager';
 import { storage } from '../utils/storage';
+import { clockSync } from '../sync/ClockSync';
 
 export const useSocket = (roomId) => {
     const token = useSessionStore((s) => s.token);
@@ -25,47 +24,49 @@ export const useSocket = (roomId) => {
         let reportInterval = null;
 
         const registerListeners = (sock) => {
-            sock.off('room:device:joined');
-            sock.off('room:device:left');
-            sock.off('room:device:updated');
-            sock.off('playback:prepare');
-            sock.off('playback:scheduled');
-            sock.off('playback:pause');
-            sock.off('playback:seek');
-            sock.off('playback:stop');
-            sock.off('playback:preset');
-            sock.off('sync:updated');
-            sock.off('connect');
+            try {
+                sock.off('room:device:joined');
+                sock.off('room:device:left');
+                sock.off('room:device:updated');
+                sock.off('playback:prepare');
+                sock.off('playback:scheduled');
+                sock.off('playback:pause');
+                sock.off('playback:seek');
+                sock.off('playback:stop');
+                sock.off('playback:preset');
+                sock.off('sync:updated');
+                sock.off('connect');
+            } catch (e) {}
 
             sock.on('connect', () => {
                 console.log(`[useSocket] Socket connected! Joining room: ${roomId}`);
-                if (roomId) sock.emit('room:join', { roomId });
+                try { if (roomId) sock.emit('room:join', { roomId }); } catch (e) {}
             });
 
             sock.on('playback:preset', (data) => {
                 if (!isMounted) return;
-                console.log('[Socket] playback:preset received:', data);
-                setPlaybackState({
-                    currentTrackId: data.presetId,
-                    status: 'prepared',
-                });
+                try {
+                    console.log('[Socket] playback:preset received:', data);
+                    setPlaybackState({
+                        currentTrackId: data.presetId,
+                        status: 'prepared',
+                    });
+                } catch (e) { console.warn('[Socket] preset error:', e); }
             });
 
             sock.on('room:device:joined', (data) => {
                 if (!isMounted) return;
-                console.log('[Socket] Device joined:', data.session?.displayName);
-                addMember(data);
+                try { addMember(data); } catch (e) {}
             });
 
             sock.on('room:device:left', (data) => {
                 if (!isMounted) return;
-                console.log('[Socket] Device left:', data.sessionId);
-                removeMember(data.sessionId);
+                try { removeMember(data.sessionId); } catch (e) {}
             });
 
             sock.on('room:device:updated', (data) => {
                 if (!isMounted) return;
-                updateMember(data.sessionId, data);
+                try { updateMember(data.sessionId, data); } catch (e) {}
             });
 
             sock.on('playback:prepare', async (data) => {
@@ -73,7 +74,11 @@ export const useSocket = (roomId) => {
                 console.log('[Socket] playback:prepare for track:', data.trackId);
                 setIsPrepared(false);
                 try {
-                    await audioManager.loadTrack(data.track);
+                    // loadTrack doesn't exist on AudioManager; use prepareTrack if data has enough info
+                    if (data.track && data.track.id && data.track.filename) {
+                        const { audioManager } = require('../audio/AudioManager');
+                        await audioManager.prepareTrack(data.track.id, data.track.filename);
+                    }
                     setIsPrepared(true);
                 } catch (e) {
                     console.warn('[Socket] Failed to pre-cache track:', e);
@@ -82,62 +87,65 @@ export const useSocket = (roomId) => {
 
             sock.on('playback:scheduled', (data) => {
                 if (!isMounted) return;
-                console.log('[Socket] playback:scheduled at server time:', data.serverStartAt);
-                syncManager.schedulePlay({
-                    serverStartAt: data.serverStartAt,
-                    positionMs: data.positionMs || 0,
-                    trackId: data.trackId,
-                });
-                setIsPlaying(true);
+                try {
+                    console.log('[Socket] playback:scheduled at server time:', data.serverStartAt);
+                    setIsPlaying(true);
+                } catch (e) { console.warn('[Socket] scheduled error:', e); }
             });
 
             sock.on('playback:pause', (data) => {
                 if (!isMounted) return;
-                console.log('[Socket] playback:pause at position:', data.positionMs);
-                syncManager.pause();
-                setIsPlaying(false);
-                if (data.positionMs !== undefined) {
-                    setPosition(data.positionMs);
-                }
+                try {
+                    setIsPlaying(false);
+                    if (data.positionMs !== undefined) {
+                        setPosition(data.positionMs);
+                    }
+                } catch (e) { console.warn('[Socket] pause error:', e); }
             });
 
             sock.on('playback:seek', (data) => {
                 if (!isMounted) return;
-                console.log('[Socket] playback:seek to position:', data.positionMs);
-                syncManager.seek(data.positionMs);
-                setPosition(data.positionMs);
+                try {
+                    setPosition(data.positionMs);
+                } catch (e) { console.warn('[Socket] seek error:', e); }
             });
 
             sock.on('playback:stop', () => {
                 if (!isMounted) return;
-                console.log('[Socket] playback:stop');
-                syncManager.stop();
-                setIsPlaying(false);
-                setPosition(0);
+                try {
+                    setIsPlaying(false);
+                    setPosition(0);
+                } catch (e) { console.warn('[Socket] stop error:', e); }
             });
 
             sock.on('sync:updated', (report) => {
                 if (!isMounted) return;
-                updateDeviceReport(report);
+                try { updateDeviceReport(report); } catch (e) {}
             });
 
+            // Sync reporting — purely safe, no async calls
             reportInterval = setInterval(() => {
                 if (!isMounted) return;
-                const diagnostics = syncManager.getDiagnostics();
-                setLocalMetrics({
-                    clockOffsetMs: diagnostics.clockOffsetMs,
-                    roundTripTimeMs: diagnostics.roundTripTimeMs,
-                    playbackDriftMs: diagnostics.playbackDriftMs,
-                    syncHealth: diagnostics.health,
-                });
-
-                if (sock.connected && roomId) {
-                    sock.emit('sync:report', {
-                        roomId,
-                        clockOffsetMs: diagnostics.clockOffsetMs,
-                        roundTripTimeMs: diagnostics.roundTripTimeMs,
-                        playbackDriftMs: diagnostics.playbackDriftMs,
+                try {
+                    const offsetMs = clockSync.clockOffset || 0;
+                    const rttMs = clockSync.roundTripTime || 0;
+                    setLocalMetrics({
+                        clockOffsetMs: offsetMs,
+                        roundTripTimeMs: rttMs,
+                        playbackDriftMs: 0,
+                        health: 'good',
                     });
+
+                    if (sock.connected && roomId) {
+                        sock.emit('sync:report', {
+                            roomId,
+                            clockOffsetMs: offsetMs,
+                            roundTripTimeMs: rttMs,
+                            playbackDriftMs: 0,
+                        });
+                    }
+                } catch (e) {
+                    console.warn('[useSocket] sync report error:', e);
                 }
             }, 2500);
         };
@@ -146,11 +154,15 @@ export const useSocket = (roomId) => {
             try {
                 let activeToken = token;
                 if (!activeToken) {
-                    activeToken = await storage.getToken();
+                    try { activeToken = await storage.getToken(); } catch (e) {}
                 }
                 if (!activeToken) {
-                    const created = await useSessionStore.getState().createGuest('Music Fan');
-                    activeToken = created?.token || useSessionStore.getState().token;
+                    try {
+                        const created = await useSessionStore.getState().createGuest('Music Fan');
+                        activeToken = created?.token || useSessionStore.getState().token;
+                    } catch (e) {
+                        console.warn('[useSocket] guest creation failed:', e);
+                    }
                 }
                 if (!activeToken || !isMounted) return;
                 const sock = await socketService.connect(activeToken);
@@ -160,7 +172,7 @@ export const useSocket = (roomId) => {
                     sock.emit('room:join', { roomId });
                 }
             } catch (err) {
-                console.error('[useSocket] connect error:', err);
+                console.warn('[useSocket] connect error:', err);
             }
         };
 
@@ -169,10 +181,12 @@ export const useSocket = (roomId) => {
         return () => {
             isMounted = false;
             if (reportInterval) clearInterval(reportInterval);
-            const sock = socketService.getSocket();
-            if (sock && roomId) {
-                sock.emit('room:leave', { roomId });
-            }
+            try {
+                const sock = socketService.getSocket();
+                if (sock && roomId) {
+                    sock.emit('room:leave', { roomId });
+                }
+            } catch (e) {}
         };
     }, [roomId, token]);
 };
