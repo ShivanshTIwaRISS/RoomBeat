@@ -59,7 +59,7 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
 
     init {
         reactContext.addActivityEventListener(object : BaseActivityEventListener() {
-            override fun onActivityResult(activity: Activity?, requestCode: Int, resultCode: Int, data: Intent?) {
+            override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, data: Intent?) {
                 if (requestCode == REQUEST_CODE_PICK_AUDIO) {
                     if (resultCode == Activity.RESULT_OK && data?.data != null) {
                         try {
@@ -549,7 +549,7 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
 
     @ReactMethod
     fun pickAudioFile(promise: Promise) {
-        val activity = currentActivity
+        val activity = reactApplicationContext.currentActivity
         if (activity == null) {
             promise.reject("ERR_NO_ACTIVITY", "Current activity is null")
             return
@@ -569,7 +569,7 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
 
     @ReactMethod
     fun openCameraScanner(promise: Promise) {
-        val activity = currentActivity
+        val activity = reactApplicationContext.currentActivity
         if (activity == null) {
             promise.reject("ERR_NO_ACTIVITY", "Current activity is null")
             return
