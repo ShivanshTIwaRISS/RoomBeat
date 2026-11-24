@@ -27,6 +27,12 @@ export const useSocket = (roomId) => {
     useEffect(() => {
         let isMounted = true;
         let reportInterval = null;
+        let activeSocket = null;
+
+        const handleConnect = () => {
+            console.log(`[useSocket] Socket connected! Joining room: ${roomId}`);
+            try { if (roomId && activeSocket) activeSocket.emit('room:join', { roomId }); } catch (e) {}
+        };
 
         // Subscribe to native ExoPlayer position updates
         const unsubscribePos = nativeAudio.onPositionUpdate((evt) => {
@@ -38,7 +44,35 @@ export const useSocket = (roomId) => {
             } catch (e) {}
         });
 
+        // Subscribe to native ExoPlayer errors -> fallback to local file download if HTTP stream fails
+        const unsubscribeErr = nativeAudio.onError(async (evt) => {
+            if (!isMounted) return;
+            console.warn('[useSocket] ExoPlayer error:', evt?.message, evt?.code);
+            try {
+                const track = usePlaybackStore.getState().currentTrack;
+                if (track?.id && !String(track.id).startsWith('preset-')) {
+                    const { audioManager } = require('../audio/AudioManager');
+                    const baseUrl = await getActiveBaseUrl();
+                    const localPath = audioManager.getLocalTrackPath(track.id, track.filename || `${track.id}.mp3`);
+                    const RNFS = require('react-native-fs');
+                    const downloadRes = await RNFS.downloadFile({
+                        fromUrl: `${baseUrl}/tracks/${track.id}/audio`,
+                        toFile: localPath,
+                    }).promise;
+                    if (downloadRes.statusCode === 200 || downloadRes.statusCode === 206) {
+                        await nativeAudio.prepare(localPath);
+                        if (usePlaybackStore.getState().isPlaying) {
+                            await nativeAudio.play();
+                        }
+                    }
+                }
+            } catch (fallbackErr) {
+                console.warn('[useSocket] Audio download fallback error:', fallbackErr);
+            }
+        });
+
         const registerListeners = (sock) => {
+            activeSocket = sock;
             try {
                 sock.off('room:joined');
                 sock.off('room:device:joined');
@@ -52,13 +86,10 @@ export const useSocket = (roomId) => {
                 sock.off('playback:stop');
                 sock.off('playback:preset');
                 sock.off('sync:updated');
-                sock.off('connect');
+                sock.off('connect', handleConnect);
             } catch (e) {}
 
-            sock.on('connect', () => {
-                console.log(`[useSocket] Socket connected! Joining room: ${roomId}`);
-                try { if (roomId) sock.emit('room:join', { roomId }); } catch (e) {}
-            });
+            sock.on('connect', handleConnect);
 
             sock.on('room:joined', async (data) => {
                 if (!isMounted) return;
@@ -299,10 +330,12 @@ export const useSocket = (roomId) => {
             isMounted = false;
             if (reportInterval) clearInterval(reportInterval);
             try { unsubscribePos(); } catch (e) {}
+            try { unsubscribeErr(); } catch (e) {}
             try {
                 const sock = socketService.getSocket();
-                if (sock && roomId) {
-                    sock.emit('room:leave', { roomId });
+                if (sock) {
+                    sock.off('connect', handleConnect);
+                    if (roomId) sock.emit('room:leave', { roomId });
                 }
             } catch (e) {}
         };

@@ -134,6 +134,7 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
             .setAudioAttributes(audioAttributes, true)
             .build()
             .apply {
+                volume = 1.0f
                 addListener(object : Player.Listener {
                     override fun onPlaybackStateChanged(playbackState: Int) {
                         val state = when (playbackState) {
@@ -297,13 +298,17 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
                 // Cancel any previously scheduled play
                 scheduledPlayRunnable?.let { mainHandler.removeCallbacks(it) }
 
-                // Seek to position first
-                p.seekTo(positionMs.toLong())
+                // Seek only if needed (avoids stalling initial HTTP buffering at pos 0)
+                if (positionMs > 50 || p.playbackState == Player.STATE_ENDED) {
+                    p.seekTo(positionMs.toLong())
+                }
 
                 val now = SystemClock.elapsedRealtime()
-                val delayMs = targetMonotonicMs.toLong() - now
+                val rawDelayMs = targetMonotonicMs.toLong() - now
+                // Clamp delay so clock skew never causes a long silent wait
+                val delayMs = if (rawDelayMs > 5000L) 1500L else rawDelayMs
 
-                Log.d(TAG, "Scheduling play: position=$positionMs, targetMonotonic=$targetMonotonicMs, delay=${delayMs}ms")
+                Log.d(TAG, "Scheduling play: position=$positionMs, targetMonotonic=$targetMonotonicMs, rawDelay=${rawDelayMs}ms, delay=${delayMs}ms")
 
                 if (delayMs <= 0) {
                     // Target time already passed, play immediately

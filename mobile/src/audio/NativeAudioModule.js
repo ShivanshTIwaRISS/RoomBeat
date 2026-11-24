@@ -36,7 +36,12 @@ class NativeAudioBridge {
     async prepare(trackUri) {
         this.currentPreparedUri = trackUri;
         if (this.isNativeAvailable) {
-            return RoomBeatAudio.prepare(trackUri);
+            try {
+                return await RoomBeatAudio.prepare(trackUri);
+            } catch (e) {
+                this.currentPreparedUri = null;
+                throw e;
+            }
         }
         console.log(`[AudioMock] Prepared: ${trackUri}`);
         return true;
@@ -139,6 +144,12 @@ class NativeAudioBridge {
         if (!this.emitter)
             return () => { };
         const sub = this.emitter.addListener('onPlaybackStateChanged', callback);
+        return () => sub.remove();
+    }
+    onError(callback) {
+        if (!this.emitter)
+            return () => { };
+        const sub = this.emitter.addListener('onPlaybackError', callback);
         return () => sub.remove();
     }
 }

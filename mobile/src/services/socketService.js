@@ -8,6 +8,7 @@ class SocketService {
     clockPingInterval = null;
     async connect(token) {
         if (this.socket && this.socket.connected) {
+            if (!this.clockPingInterval) this.startClockSync();
             return this.socket;
         }
         let targetUrl = SOCKET_URL;

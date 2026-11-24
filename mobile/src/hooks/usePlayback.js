@@ -63,6 +63,17 @@ export const usePlayback = () => {
                 positionMs: pos,
                 delayMs: 1500,
             });
+            // Safety fallback: if playback:scheduled didn't start native ExoPlayer within 2.5s, play locally
+            setTimeout(async () => {
+                try {
+                    if (!usePlaybackStore.getState().isPlaying) return;
+                    const diag = await nativeAudio.getPlaybackDiagnostics();
+                    if (!diag?.isPlaying) {
+                        if (pos > 0) await nativeAudio.seek(pos);
+                        await nativeAudio.play();
+                    }
+                } catch (e) {}
+            }, 2500);
         }
         else {
             // Fallback: play locally right away AND notify backend via REST
