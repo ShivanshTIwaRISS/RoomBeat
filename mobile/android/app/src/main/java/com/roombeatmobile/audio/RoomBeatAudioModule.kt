@@ -298,6 +298,18 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
                 // Cancel any previously scheduled play
                 scheduledPlayRunnable?.let { mainHandler.removeCallbacks(it) }
 
+                // If player went idle, re-prepare current URI automatically
+                if (p.playbackState == Player.STATE_IDLE && currentTrackUri != null) {
+                    val uriStr = currentTrackUri!!
+                    val uri = if (uriStr.startsWith("http") || uriStr.startsWith("file://") || uriStr.startsWith("content://")) {
+                        Uri.parse(uriStr)
+                    } else {
+                        Uri.fromFile(File(uriStr))
+                    }
+                    p.setMediaItem(MediaItem.fromUri(uri))
+                    p.prepare()
+                }
+
                 // Seek only if needed (avoids stalling initial HTTP buffering at pos 0)
                 if (positionMs > 50 || p.playbackState == Player.STATE_ENDED) {
                     p.seekTo(positionMs.toLong())
@@ -355,6 +367,16 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
         mainHandler.post {
             try {
                 val p = player ?: throw IllegalStateException("Player not initialized")
+                if (p.playbackState == Player.STATE_IDLE && currentTrackUri != null) {
+                    val uriStr = currentTrackUri!!
+                    val uri = if (uriStr.startsWith("http") || uriStr.startsWith("file://") || uriStr.startsWith("content://")) {
+                        Uri.parse(uriStr)
+                    } else {
+                        Uri.fromFile(File(uriStr))
+                    }
+                    p.setMediaItem(MediaItem.fromUri(uri))
+                    p.prepare()
+                }
                 if (p.playbackState == Player.STATE_ENDED) p.seekTo(0)
                 p.playWhenReady = true
                 p.play()

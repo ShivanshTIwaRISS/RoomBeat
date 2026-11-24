@@ -4,13 +4,19 @@ import { clockSync } from '../sync/ClockSync';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 class SocketService {
     socket = null;
+    currentToken = null;
     isConnecting = false;
     clockPingInterval = null;
     async connect(token) {
+        if (this.socket && this.currentToken && token && this.currentToken !== token) {
+            // Token changed (e.g. new guest session); reconnect with fresh auth
+            this.disconnect();
+        }
         if (this.socket && this.socket.connected) {
             if (!this.clockPingInterval) this.startClockSync();
             return this.socket;
         }
+        this.currentToken = token || this.currentToken;
         let targetUrl = SOCKET_URL;
         try {
             const host = await AsyncStorage.getItem('roombeat_server_host');
