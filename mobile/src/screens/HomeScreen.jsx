@@ -10,6 +10,7 @@ import { storage } from '../utils/storage';
 import { formatRoomCode } from '../utils/formatters';
 import { DEFAULT_DEV_HOST, resolveServerUrl } from '../constants/config';
 import { requestAppPermissions } from '../utils/permissions';
+import { apiClient } from '../api/client';
 export const HomeScreen = ({ navigation }) => {
     const session = useSessionStore((s) => s.session);
     const createGuest = useSessionStore((s) => s.createGuest);
@@ -17,21 +18,25 @@ export const HomeScreen = ({ navigation }) => {
     const [serverDisplay, setServerDisplay] = useState('Cloud (Render)');
 
     useEffect(() => {
-        // Request runtime permissions on Android
-        requestAppPermissions().catch(console.warn);
+        try {
+            // Request runtime permissions on Android safely
+            requestAppPermissions().catch(console.warn);
 
-        // Wake up cloud server in background
-        apiClient.get('/health').catch(() => {});
+            // Wake up cloud server in background
+            apiClient.get('/health').catch(() => {});
 
-        // Ensure guest session exists
-        if (!session) {
-            createGuest('Music Fan').catch(console.warn);
+            // Ensure guest session exists
+            if (!session) {
+                createGuest('Music Fan').catch(console.warn);
+            }
+            storage.getRecentRooms().then(setRecentRooms).catch(() => {});
+            AsyncStorage.getItem('roombeat_server_host').then((h) => {
+                const resolved = resolveServerUrl(h);
+                setServerDisplay(resolved.isCloud ? 'Cloud (Render)' : resolved.display);
+            }).catch(() => {});
+        } catch (initErr) {
+            console.warn('[HomeScreen] Init error:', initErr);
         }
-        storage.getRecentRooms().then(setRecentRooms);
-        AsyncStorage.getItem('roombeat_server_host').then((h) => {
-            const resolved = resolveServerUrl(h);
-            setServerDisplay(resolved.isCloud ? 'Cloud (Render)' : resolved.display);
-        }).catch(() => {});
     }, [session, createGuest]);
     return (<ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Top Bar */}

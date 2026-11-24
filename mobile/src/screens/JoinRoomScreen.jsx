@@ -10,9 +10,7 @@ import {
     Animated,
     PermissionsAndroid,
     Platform,
-    TextInput,
 } from 'react-native';
-import Svg, { Rect, Line } from 'react-native-svg';
 import { colors, typography, spacing, borderRadius } from '../theme';
 import { Header } from '../components/common/Header';
 import { Input } from '../components/common/Input';

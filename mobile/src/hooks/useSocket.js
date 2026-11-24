@@ -1,17 +1,15 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { socketService } from '../services/socketService';
 import { useSessionStore } from '../store/useSessionStore';
 import { useRoomStore } from '../store/useRoomStore';
 import { usePlaybackStore } from '../store/usePlaybackStore';
 import { useSyncStore } from '../store/useSyncStore';
 import { audioManager } from '../audio/AudioManager';
-import { clockSync } from '../sync/ClockSync';
 import { syncManager } from '../sync/SyncManager';
 import { storage } from '../utils/storage';
 
 export const useSocket = (roomId) => {
     const token = useSessionStore((s) => s.token);
-    const session = useSessionStore((s) => s.session);
     const addMember = useRoomStore((s) => s.addMember);
     const removeMember = useRoomStore((s) => s.removeMember);
     const updateMember = useRoomStore((s) => s.updateMember);
@@ -19,8 +17,6 @@ export const useSocket = (roomId) => {
     const setIsPlaying = usePlaybackStore((s) => s.setIsPlaying);
     const setIsPrepared = usePlaybackStore((s) => s.setIsPrepared);
     const setPosition = usePlaybackStore((s) => s.setPosition);
-    const setDuration = usePlaybackStore((s) => s.setDuration);
-    const setDownloadProgress = usePlaybackStore((s) => s.setDownloadProgress);
     const updateDeviceReport = useSyncStore((s) => s.updateDeviceReport);
     const setLocalMetrics = useSyncStore((s) => s.setLocalMetrics);
 
