@@ -105,6 +105,18 @@ class NativeAudioBridge {
         }
         return 'checksum_placeholder';
     }
+    async pickAudioFile() {
+        if (this.isNativeAvailable && RoomBeatAudio.pickAudioFile) {
+            return RoomBeatAudio.pickAudioFile();
+        }
+        throw new Error('Audio file picker is only available on Android native builds');
+    }
+    async openCameraScanner() {
+        if (this.isNativeAvailable && RoomBeatAudio.openCameraScanner) {
+            return RoomBeatAudio.openCameraScanner();
+        }
+        throw new Error('Camera scanner is only available on Android native builds');
+    }
     onPositionUpdate(callback) {
         if (!this.emitter)
             return () => { };

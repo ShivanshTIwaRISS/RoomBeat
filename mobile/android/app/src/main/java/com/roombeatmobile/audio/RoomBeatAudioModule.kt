@@ -1,10 +1,14 @@
 package com.roombeatmobile.audio
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.provider.MediaStore
+import android.provider.OpenableColumns
 import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
@@ -13,6 +17,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import java.io.File
+import java.io.FileOutputStream
 import java.security.MessageDigest
 
 /**
@@ -37,6 +42,9 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
         const val EVENT_PLAYBACK_ERROR = "onPlaybackError"
         const val EVENT_TRACK_PREPARED = "onTrackPrepared"
         const val EVENT_PLAYBACK_POSITION = "onPlaybackPosition"
+
+        const val REQUEST_CODE_PICK_AUDIO = 8492
+        const val REQUEST_CODE_SCAN_QR = 8493
     }
 
     private var player: ExoPlayer? = null
@@ -45,6 +53,58 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
     private var scheduledPlayRunnable: Runnable? = null
     private var isPrepared = false
     private var currentTrackUri: String? = null
+
+    private var pickAudioPromise: Promise? = null
+    private var scanQrPromise: Promise? = null
+
+    init {
+        reactContext.addActivityEventListener(object : BaseActivityEventListener() {
+            override fun onActivityResult(activity: Activity?, requestCode: Int, resultCode: Int, data: Intent?) {
+                if (requestCode == REQUEST_CODE_PICK_AUDIO) {
+                    if (resultCode == Activity.RESULT_OK && data?.data != null) {
+                        try {
+                            val uri = data.data!!
+                            val contentResolver = reactApplicationContext.contentResolver
+                            var fileName = "track_${System.currentTimeMillis()}.mp3"
+                            contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                                if (nameIndex != -1 && cursor.moveToFirst()) {
+                                    val name = cursor.getString(nameIndex)
+                                    if (!name.isNullOrBlank()) fileName = name
+                                }
+                            }
+                            val destFile = File(reactApplicationContext.cacheDir, fileName)
+                            contentResolver.openInputStream(uri)?.use { input ->
+                                FileOutputStream(destFile).use { output ->
+                                    input.copyTo(output)
+                                }
+                            }
+                            val result = Arguments.createMap().apply {
+                                putString("uri", "file://" + destFile.absolutePath)
+                                putString("path", destFile.absolutePath)
+                                putString("name", fileName)
+                                putDouble("size", destFile.length().toDouble())
+                            }
+                            pickAudioPromise?.resolve(result)
+                        } catch (e: Exception) {
+                            pickAudioPromise?.reject("ERR_COPY_AUDIO", e.message, e)
+                        }
+                    } else {
+                        pickAudioPromise?.reject("PICK_CANCELLED", "No audio file was selected")
+                    }
+                    pickAudioPromise = null
+                } else if (requestCode == REQUEST_CODE_SCAN_QR) {
+                    if (resultCode == Activity.RESULT_OK && data != null) {
+                        val contents = data.getStringExtra("SCAN_RESULT") ?: ""
+                        scanQrPromise?.resolve(contents)
+                    } else {
+                        scanQrPromise?.reject("SCAN_CANCELLED", "QR scan cancelled")
+                    }
+                    scanQrPromise = null
+                }
+            }
+        })
+    }
 
     // Time reference: offset between System.nanoTime() / 1_000_000 and System.currentTimeMillis()
     // This helps map monotonic time to wall clock for server time correlation
@@ -484,6 +544,56 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
                 .emit(eventName, params)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to emit event $eventName: ${e.message}")
+        }
+    }
+
+    @ReactMethod
+    fun pickAudioFile(promise: Promise) {
+        val activity = currentActivity
+        if (activity == null) {
+            promise.reject("ERR_NO_ACTIVITY", "Current activity is null")
+            return
+        }
+        pickAudioPromise = promise
+        try {
+            val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                type = "audio/*"
+                addCategory(Intent.CATEGORY_OPENABLE)
+            }
+            activity.startActivityForResult(Intent.createChooser(intent, "Select Audio File"), REQUEST_CODE_PICK_AUDIO)
+        } catch (e: Exception) {
+            pickAudioPromise = null
+            promise.reject("ERR_LAUNCH_PICKER", e.message, e)
+        }
+    }
+
+    @ReactMethod
+    fun openCameraScanner(promise: Promise) {
+        val activity = currentActivity
+        if (activity == null) {
+            promise.reject("ERR_NO_ACTIVITY", "Current activity is null")
+            return
+        }
+        try {
+            val zxingIntent = Intent("com.google.zxing.client.android.SCAN").apply {
+                putExtra("SCAN_MODE", "QR_CODE_MODE")
+            }
+            if (zxingIntent.resolveActivity(activity.packageManager) != null) {
+                scanQrPromise = promise
+                activity.startActivityForResult(zxingIntent, REQUEST_CODE_SCAN_QR)
+                return
+            }
+
+            val cameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            if (cameraIntent.resolveActivity(activity.packageManager) != null) {
+                activity.startActivity(cameraIntent)
+                promise.resolve("CAMERA_OPENED")
+                return
+            }
+
+            promise.reject("NO_SCANNER", "No camera application found")
+        } catch (e: Exception) {
+            promise.reject("ERR_SCANNER", e.message, e)
         }
     }
 

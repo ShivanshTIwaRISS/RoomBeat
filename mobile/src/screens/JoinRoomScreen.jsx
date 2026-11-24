@@ -56,7 +56,7 @@ export const JoinRoomScreen = ({ navigation, route }) => {
     const handleOpenScanner = async () => {
         if (Platform.OS === 'android') {
             try {
-                const granted = await PermissionsAndroid.request(
+                await PermissionsAndroid.request(
                     PermissionsAndroid.PERMISSIONS.CAMERA,
                     {
                         title: 'Camera Permission',
@@ -65,15 +65,19 @@ export const JoinRoomScreen = ({ navigation, route }) => {
                         buttonNegative: 'Cancel',
                     }
                 );
-                if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-                    Alert.alert(
-                        'Camera Permission Required',
-                        'Please allow camera access in phone settings to scan QR codes, or enter the 6-character room code manually.'
-                    );
+            } catch (e) {}
+
+            try {
+                const { nativeAudio } = require('../audio/NativeAudioModule');
+                const scanned = await nativeAudio.openCameraScanner();
+                if (scanned && scanned !== 'CAMERA_OPENED') {
+                    const match = scanned.match(/code=([A-Z0-9]+)/i) || scanned.match(/([A-Z0-9]{4,8})/i);
+                    const parsedCode = match ? match[1] : scanned;
+                    handleScannedCode(parsedCode);
                     return;
                 }
-            } catch (e) {
-                console.warn('Camera request error:', e);
+            } catch (scanErr) {
+                console.warn('[JoinRoom] Camera scanner notice:', scanErr.message);
             }
         }
         setScannerVisible(true);
@@ -149,9 +153,14 @@ export const JoinRoomScreen = ({ navigation, route }) => {
                     <Input
                         placeholder="e.g. XM37KD"
                         value={code}
+                        maxLength={6}
                         onChangeText={(t) => {
-                            setCode(t);
+                            const clean = t.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                            setCode(clean);
                             setError(null);
+                            if (clean.length === 6) {
+                                handleJoin(clean);
+                            }
                         }}
                         autoCapitalize="characters"
                         style={styles.codeInput}

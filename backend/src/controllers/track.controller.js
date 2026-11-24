@@ -19,6 +19,40 @@ const uploadTrack = async (req, res) => {
             durationMs: req.body.durationMs ? parseInt(req.body.durationMs, 10) : undefined,
         };
         const track = await track_service_1.trackService.createTrack(req.params.roomId, req.session.id, req.file, metadata);
+
+        // Update room's active playback state to this newly uploaded track
+        try {
+            const database_1 = require("../config/database");
+            await database_1.prisma.playbackState.upsert({
+                where: { roomId: req.params.roomId },
+                update: { currentTrackId: track.id, status: 'prepared', positionMs: 0 },
+                create: { roomId: req.params.roomId, currentTrackId: track.id, status: 'prepared', positionMs: 0 },
+            });
+        } catch (dbErr) {
+            console.warn('[TrackController] PlaybackState update warning:', dbErr);
+        }
+
+        // Broadcast to all devices in the room immediately via Socket.IO
+        try {
+            const server_1 = require("../server");
+            if (server_1.io) {
+                server_1.io.to(req.params.roomId).emit('room:track:added', {
+                    track,
+                    roomId: req.params.roomId,
+                });
+                server_1.io.to(req.params.roomId).emit('playback:prepare', {
+                    trackId: track.id,
+                    trackUrl: `/api/v1/tracks/${track.id}/audio`,
+                    title: track.title,
+                    artist: track.artist,
+                    durationMs: track.durationMs || 180000,
+                    checksum: track.checksum,
+                });
+            }
+        } catch (socketErr) {
+            console.warn('[TrackController] Socket broadcast warning:', socketErr);
+        }
+
         return (0, response_1.sendSuccess)(res, track, 'Track uploaded successfully', 201);
     }
     catch (err) {

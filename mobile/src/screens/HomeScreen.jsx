@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors, borderRadius, typography, spacing } from '../theme';
 import { Button } from '../components/common/Button';
@@ -12,6 +13,8 @@ import { DEFAULT_DEV_HOST, resolveServerUrl } from '../constants/config';
 import { requestAppPermissions } from '../utils/permissions';
 import { apiClient } from '../api/client';
 export const HomeScreen = ({ navigation }) => {
+    const insets = useSafeAreaInsets();
+    const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0, 16);
     const session = useSessionStore((s) => s.session);
     const createGuest = useSessionStore((s) => s.createGuest);
     const [recentRooms, setRecentRooms] = useState([]);
@@ -38,7 +41,7 @@ export const HomeScreen = ({ navigation }) => {
             console.warn('[HomeScreen] Init error:', initErr);
         }
     }, [session, createGuest]);
-    return (<ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    return (<ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: topInset + 8 }]}>
       {/* Top Bar */}
       <View style={styles.topBar}>
         <View style={styles.brandRow}>

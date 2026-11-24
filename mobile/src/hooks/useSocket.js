@@ -97,6 +97,16 @@ export const useSocket = (roomId) => {
                 try { updateMember(data?.sessionId || data?.id, data); } catch (e) {}
             });
 
+            sock.on('room:track:added', (data) => {
+                if (!isMounted) return;
+                try {
+                    console.log('[Socket] room:track:added:', data?.track?.title);
+                    if (data?.track) {
+                        setCurrentTrack(data.track);
+                    }
+                } catch (e) {}
+            });
+
             sock.on('playback:prepare', async (data) => {
                 if (!isMounted) return;
                 console.log('[Socket] playback:prepare for track:', data?.trackId);

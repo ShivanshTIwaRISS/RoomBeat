@@ -1,15 +1,20 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, typography, spacing } from '../../theme';
+
 export const Header = ({ title, subtitle, onBack, rightAction, }) => {
-    return (<View style={styles.container}>
+    const insets = useSafeAreaInsets();
+    const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 24) : 0, 16);
+
+    return (<View style={[styles.container, { paddingTop: topInset + 6 }]}>
       <View style={styles.leftContainer}>
         {onBack && (<TouchableOpacity onPress={onBack} style={styles.backButton} activeOpacity={0.7}>
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>)}
-        <View>
+        <View style={styles.titleWrapper}>
           <Text style={styles.title} numberOfLines={1}>{title}</Text>
-          {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+          {subtitle && <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>}
         </View>
       </View>
       {rightAction && <View style={styles.rightContainer}>{rightAction}</View>}
@@ -21,12 +26,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: spacing.md,
-        paddingVertical: spacing.md,
+        paddingBottom: spacing.sm,
         backgroundColor: colors.background,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.surfaceBorder,
     },
     leftContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        flex: 1,
+    },
+    titleWrapper: {
         flex: 1,
     },
     backButton: {
