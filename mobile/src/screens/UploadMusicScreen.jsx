@@ -8,6 +8,7 @@ import { Card } from '../components/common/Card';
 import { ProgressBar } from '../components/common/ProgressBar';
 import { tracksApi } from '../api/tracks';
 import { nativeAudio } from '../audio/NativeAudioModule';
+import { getActiveBaseUrl } from '../api/client';
 import { formatFileSize } from '../utils/formatters';
 import { useRoomStore } from '../store/useRoomStore';
 import { usePlaybackStore } from '../store/usePlaybackStore';
@@ -103,6 +104,12 @@ export const UploadMusicScreen = ({ navigation, route }) => {
             setProgress(1.0);
             if (track) {
                 setCurrentTrack(track);
+                usePlaybackStore.getState().setDuration(track.durationMs || 180000);
+                try {
+                    const baseUrl = await getActiveBaseUrl();
+                    await nativeAudio.prepare(`${baseUrl}/tracks/${track.id}/audio`);
+                    usePlaybackStore.getState().setIsPrepared(true);
+                } catch (prepErr) {}
             }
 
             Alert.alert(
@@ -131,6 +138,25 @@ export const UploadMusicScreen = ({ navigation, route }) => {
                 artist: artistToUse,
                 durationMs: 30000,
             });
+            usePlaybackStore.getState().setDuration(30000);
+            try {
+                const baseUrl = await getActiveBaseUrl();
+                const serverRoot = baseUrl.replace('/api/v1', '');
+                await nativeAudio.prepare(`${serverRoot}/demo.wav`);
+                usePlaybackStore.getState().setIsPrepared(true);
+            } catch (e) {}
+            try {
+                const { socketService } = require('../services/socketService');
+                const sock = socketService.getSocket();
+                if (sock && sock.connected) {
+                    sock.emit('playback:preset', {
+                        roomId,
+                        presetId: selectedPreset.id,
+                        title: titleToUse,
+                        durationSec: 30,
+                    });
+                }
+            } catch (e) {}
 
             setProgress(1.0);
             Alert.alert(

@@ -18,6 +18,20 @@ const preparePlayback = async (req, res) => {
         if (!req.session)
             return (0, response_1.sendError)(res, 'Unauthorized', 'UNAUTHORIZED', 401);
         const result = await playback_service_1.playbackService.prepareTrack(req.params.roomId, req.body.trackId, req.session.id);
+        try {
+            const { io } = require('../server');
+            if (io && result?.track) {
+                io.to(req.params.roomId).emit('playback:prepare', {
+                    trackId: result.track.id,
+                    trackUrl: `/api/v1/tracks/${result.track.id}/audio`,
+                    title: result.track.title,
+                    artist: result.track.artist,
+                    durationMs: result.track.durationMs,
+                    checksum: result.track.checksum,
+                    sequenceNumber: result.playbackState.sequenceNumber,
+                });
+            }
+        } catch (e) {}
         return (0, response_1.sendSuccess)(res, result, 'Track preparation initiated');
     }
     catch (err) {
@@ -30,8 +44,19 @@ const playPlayback = async (req, res) => {
         if (!req.session)
             return (0, response_1.sendError)(res, 'Unauthorized', 'UNAUTHORIZED', 401);
         const positionMs = req.body.positionMs ?? 0;
-        const delayMs = req.body.delayMs ?? 3000;
+        const delayMs = req.body.delayMs ?? 1500;
         const result = await playback_service_1.playbackService.schedulePlay(req.params.roomId, req.session.id, positionMs, delayMs);
+        try {
+            const { io } = require('../server');
+            if (io) {
+                io.to(req.params.roomId).emit('playback:scheduled', {
+                    trackId: result.playbackState.currentTrackId,
+                    positionMs: result.playbackState.positionMs,
+                    startAtServerEpochMs: result.startAtServerEpochMs,
+                    sequenceNumber: result.playbackState.sequenceNumber,
+                });
+            }
+        } catch (e) {}
         return (0, response_1.sendSuccess)(res, result, 'Playback scheduled');
     }
     catch (err) {
@@ -44,6 +69,15 @@ const pausePlayback = async (req, res) => {
         if (!req.session)
             return (0, response_1.sendError)(res, 'Unauthorized', 'UNAUTHORIZED', 401);
         const result = await playback_service_1.playbackService.pausePlayback(req.params.roomId, req.session.id);
+        try {
+            const { io } = require('../server');
+            if (io) {
+                io.to(req.params.roomId).emit('playback:pause', {
+                    positionMs: result.playbackState.positionMs,
+                    sequenceNumber: result.playbackState.sequenceNumber,
+                });
+            }
+        } catch (e) {}
         return (0, response_1.sendSuccess)(res, result, 'Playback paused');
     }
     catch (err) {
@@ -56,6 +90,15 @@ const seekPlayback = async (req, res) => {
         if (!req.session)
             return (0, response_1.sendError)(res, 'Unauthorized', 'UNAUTHORIZED', 401);
         const result = await playback_service_1.playbackService.seekPlayback(req.params.roomId, req.session.id, req.body.positionMs);
+        try {
+            const { io } = require('../server');
+            if (io) {
+                io.to(req.params.roomId).emit('playback:seek', {
+                    positionMs: result.playbackState.positionMs,
+                    sequenceNumber: result.playbackState.sequenceNumber,
+                });
+            }
+        } catch (e) {}
         return (0, response_1.sendSuccess)(res, result, 'Playback seeked');
     }
     catch (err) {

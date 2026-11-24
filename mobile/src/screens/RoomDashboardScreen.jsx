@@ -18,6 +18,7 @@ import { tracksApi } from '../api/tracks';
 import { formatRoomCode } from '../utils/formatters';
 import { nativeAudio } from '../audio/NativeAudioModule';
 import { getActiveBaseUrl } from '../api/client';
+import { storage } from '../utils/storage';
 
 // Conditionally import QRCode — if the native module is missing, fall back gracefully
 let QRCode = null;
@@ -62,7 +63,7 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                 try {
                     const baseUrl = await getActiveBaseUrl();
                     const audioUri = `${baseUrl}/tracks/${first.id}/audio`;
-                    await nativeAudio.prepare(audioUri);
+                    await nativeAudio.prepareIfNeeded(audioUri);
                     setIsPrepared(true);
                 } catch (e) {}
             } else {
@@ -98,17 +99,21 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
         });
     }, [roomId, setCurrentTrack, setDuration, setIsPrepared]);
     useEffect(() => {
-        // Fetch latest room info — fully defensive
+        // Fetch latest room info — resolve session from storage if Zustand isn't populated yet
         if (!roomId) return;
-        roomsApi.getById(roomId).then((res) => {
+        Promise.all([
+            roomsApi.getById(roomId),
+            session?.id ? Promise.resolve(session) : storage.getSession().catch(() => null),
+        ]).then(([res, activeSession]) => {
             try {
                 const data = res?.data || res;
                 if (data && data.id) {
-                    setRoom(data, data.hostSessionId, session?.id || '');
+                    const currentSid = activeSession?.id || session?.id || data.hostSessionId;
+                    setRoom(data, data.hostSessionId, currentSid);
                 }
             } catch (e) { console.warn('[RoomDashboard] setRoom error:', e); }
         }).catch(() => {});
-    }, [roomId, setRoom, session?.id]);
+    }, [roomId, setRoom, session]);
     const handleLeave = () => {
         Alert.alert(isHost ? 'Close Room' : 'Leave Room', isHost ? 'Are you sure you want to close this room for all speakers?' : 'Disconnect from this session?', [
             { text: 'Cancel', style: 'cancel' },

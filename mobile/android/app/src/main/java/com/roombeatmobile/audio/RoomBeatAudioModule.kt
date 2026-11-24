@@ -10,6 +10,8 @@ import android.os.SystemClock
 import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.util.Log
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -124,7 +126,12 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
         if (player != null) return
 
         val context = reactApplicationContext
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+            .build()
         player = ExoPlayer.Builder(context)
+            .setAudioAttributes(audioAttributes, true)
             .build()
             .apply {
                 addListener(object : Player.Listener {
@@ -235,10 +242,23 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
                     player!!
                 }
 
+                // Skip redundant re-prepare if the exact same URI is already buffered/buffering
+                if (trackUri == currentTrackUri &&
+                    (p.playbackState == Player.STATE_READY || p.playbackState == Player.STATE_BUFFERING)
+                ) {
+                    Log.d(TAG, "Track already prepared/buffering: $trackUri")
+                    promise.resolve(true)
+                    return@post
+                }
+
                 isPrepared = false
                 currentTrackUri = trackUri
 
-                val uri = if (trackUri.startsWith("http")) {
+                val uri = if (
+                    trackUri.startsWith("http") ||
+                    trackUri.startsWith("file://") ||
+                    trackUri.startsWith("content://")
+                ) {
                     Uri.parse(trackUri)
                 } else {
                     Uri.fromFile(File(trackUri))
@@ -288,6 +308,8 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
                 if (delayMs <= 0) {
                     // Target time already passed, play immediately
                     Log.w(TAG, "Target time already passed by ${-delayMs}ms, playing immediately")
+                    if (p.playbackState == Player.STATE_ENDED) p.seekTo(0)
+                    p.playWhenReady = true
                     p.play()
                     promise.resolve(Arguments.createMap().apply {
                         putBoolean("scheduled", true)
@@ -300,6 +322,8 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
                         val actualTime = SystemClock.elapsedRealtime()
                         val jitter = actualTime - targetMonotonicMs.toLong()
                         Log.d(TAG, "Executing scheduled play, jitter: ${jitter}ms")
+                        if (p.playbackState == Player.STATE_ENDED) p.seekTo(0)
+                        p.playWhenReady = true
                         p.play()
                     }
                     scheduledPlayRunnable = runnable
@@ -326,6 +350,8 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
         mainHandler.post {
             try {
                 val p = player ?: throw IllegalStateException("Player not initialized")
+                if (p.playbackState == Player.STATE_ENDED) p.seekTo(0)
+                p.playWhenReady = true
                 p.play()
                 promise.resolve(true)
             } catch (e: Exception) {

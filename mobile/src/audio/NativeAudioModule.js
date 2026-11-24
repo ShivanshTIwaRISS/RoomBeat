@@ -3,6 +3,7 @@ const { RoomBeatAudio } = NativeModules;
 class NativeAudioBridge {
     emitter = null;
     isNativeAvailable = !!RoomBeatAudio;
+    currentPreparedUri = null;
     constructor() {
         if (this.isNativeAvailable) {
             this.emitter = new NativeEventEmitter(RoomBeatAudio);
@@ -10,6 +11,15 @@ class NativeAudioBridge {
     }
     get isAvailable() {
         return this.isNativeAvailable;
+    }
+    get isPrepared() {
+        return !!this.currentPreparedUri;
+    }
+    async prepareIfNeeded(trackUri) {
+        if (this.currentPreparedUri === trackUri) {
+            return true;
+        }
+        return this.prepare(trackUri);
     }
     async getMonotonicTimeMs() {
         if (this.isNativeAvailable) {
@@ -24,6 +34,7 @@ class NativeAudioBridge {
         return Date.now();
     }
     async prepare(trackUri) {
+        this.currentPreparedUri = trackUri;
         if (this.isNativeAvailable) {
             return RoomBeatAudio.prepare(trackUri);
         }
@@ -58,6 +69,7 @@ class NativeAudioBridge {
         return true;
     }
     async stop() {
+        this.currentPreparedUri = null;
         if (this.isNativeAvailable) {
             return RoomBeatAudio.stop();
         }
