@@ -21,8 +21,9 @@ export const SettingsScreen = ({ navigation }) => {
     }, []);
 
     const handleSaveHost = async () => {
-        const clean = serverHost.trim();
+        const clean = serverHost.trim().replace(/^https?:\/\//i, '').replace(/:\d+.*$/, '').replace(/\/.*$/, '');
         if (!clean) return;
+        setServerHost(clean);
         await AsyncStorage.setItem('roombeat_server_host', clean);
         Alert.alert('Server Host Saved', `App will now connect to http://${clean}:3000`);
     };

@@ -24,10 +24,22 @@ export const JoinRoomScreen = ({ navigation, route }) => {
         try {
             setLoading(true);
             setError(null);
+
+            // Ensure guest session exists and has current display name
+            let activeSession = session;
+            const chosenName = displayName.trim() || 'Music Fan';
+            if (!activeSession || activeSession.displayName !== chosenName) {
+                try {
+                    activeSession = await useSessionStore.getState().createGuest(chosenName);
+                } catch (authErr) {
+                    console.warn('[JoinRoom] Session initialization warning:', authErr);
+                }
+            }
+
             const res = await roomsApi.join({ code: cleanCode });
             const room = res.data?.room || res.room || res.data || res;
-            if (session) {
-                setRoom(room, room.hostSessionId, session.id);
+            if (activeSession) {
+                setRoom(room, room.hostSessionId, activeSession.id);
             }
             navigation.replace('RoomDashboard', { roomId: room.id });
         }

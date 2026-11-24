@@ -25,6 +25,18 @@ export const CreateRoomScreen = ({ navigation }) => {
         try {
             setLoading(true);
             setError(null);
+
+            // Ensure guest session exists and has current display name
+            let activeSession = session;
+            const chosenName = displayName.trim() || 'Room Host';
+            if (!activeSession || activeSession.displayName !== chosenName) {
+                try {
+                    activeSession = await useSessionStore.getState().createGuest(chosenName);
+                } catch (authErr) {
+                    console.warn('[CreateRoom] Session initialization warning:', authErr);
+                }
+            }
+
             const parsedMax = parseInt(maxDevices, 10) || 10;
             const res = await roomsApi.create({
                 name: roomName.trim(),
@@ -32,8 +44,8 @@ export const CreateRoomScreen = ({ navigation }) => {
                 isPrivate,
             });
             const room = res.data || res;
-            if (session) {
-                setRoom(room, room.hostSessionId, session.id);
+            if (activeSession) {
+                setRoom(room, room.hostSessionId, activeSession.id);
             }
             navigation.replace('RoomDashboard', { roomId: room.id });
         }

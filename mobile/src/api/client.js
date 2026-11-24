@@ -13,8 +13,9 @@ export const apiClient = axios.create({
 // Request interceptor to attach dynamic server host and JWT token
 apiClient.interceptors.request.use(async (config) => {
     try {
-        const customHost = await AsyncStorage.getItem('roombeat_server_host');
+        let customHost = await AsyncStorage.getItem('roombeat_server_host');
         if (customHost) {
+            customHost = customHost.trim().replace(/^https?:\/\//i, '').replace(/:\d+.*$/, '').replace(/\/.*$/, '');
             config.baseURL = `http://${customHost}:3000/api/v1`;
         }
     } catch (e) {}

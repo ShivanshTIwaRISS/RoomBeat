@@ -11,7 +11,12 @@ class SocketService {
             return this.socket;
         }
         let host = null;
-        try { host = await AsyncStorage.getItem('roombeat_server_host'); } catch (e) {}
+        try {
+            host = await AsyncStorage.getItem('roombeat_server_host');
+            if (host) {
+                host = host.trim().replace(/^https?:\/\//i, '').replace(/:\d+.*$/, '').replace(/\/.*$/, '');
+            }
+        } catch (e) {}
         const targetUrl = host ? `http://${host}:3000` : SOCKET_URL;
 
         if (this.socket) {
