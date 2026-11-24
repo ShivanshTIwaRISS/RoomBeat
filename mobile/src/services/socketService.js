@@ -1,5 +1,5 @@
 import { io } from 'socket.io-client';
-import { SOCKET_URL } from '../constants/config';
+import { SOCKET_URL, resolveServerUrl } from '../constants/config';
 import { clockSync } from '../sync/ClockSync';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 class SocketService {
@@ -10,14 +10,11 @@ class SocketService {
         if (this.socket && this.socket.connected) {
             return this.socket;
         }
-        let host = null;
+        let targetUrl = SOCKET_URL;
         try {
-            host = await AsyncStorage.getItem('roombeat_server_host');
-            if (host) {
-                host = host.trim().replace(/^https?:\/\//i, '').replace(/:\d+.*$/, '').replace(/\/.*$/, '');
-            }
+            const host = await AsyncStorage.getItem('roombeat_server_host');
+            targetUrl = resolveServerUrl(host).socketUrl;
         } catch (e) {}
-        const targetUrl = host ? `http://${host}:3000` : SOCKET_URL;
 
         if (this.socket) {
             if (token) this.socket.auth = { token };

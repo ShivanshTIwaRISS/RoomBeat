@@ -28,7 +28,7 @@ process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 const os_1 = __importDefault(require("os"));
 
-server.listen(config_1.config.port, () => {
+server.listen(config_1.config.port, '0.0.0.0', () => {
     console.log(`===============================================`);
     console.log(`🎵 RoomBeat Backend Server running on port ${config_1.config.port}`);
     console.log(`🌍 Environment: ${config_1.config.nodeEnv}`);

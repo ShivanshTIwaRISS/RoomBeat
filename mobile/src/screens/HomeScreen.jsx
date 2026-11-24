@@ -8,21 +8,26 @@ import { AudioWaveBackground } from '../components/home/AudioWaveBackground';
 import { useSessionStore } from '../store/useSessionStore';
 import { storage } from '../utils/storage';
 import { formatRoomCode } from '../utils/formatters';
-import { DEFAULT_DEV_HOST } from '../constants/config';
+import { DEFAULT_DEV_HOST, resolveServerUrl } from '../constants/config';
+import { requestAppPermissions } from '../utils/permissions';
 export const HomeScreen = ({ navigation }) => {
     const session = useSessionStore((s) => s.session);
     const createGuest = useSessionStore((s) => s.createGuest);
     const [recentRooms, setRecentRooms] = useState([]);
-    const [serverHost, setServerHost] = useState(DEFAULT_DEV_HOST);
+    const [serverDisplay, setServerDisplay] = useState('Cloud (Render)');
 
     useEffect(() => {
+        // Request runtime permissions on Android
+        requestAppPermissions().catch(console.warn);
+
         // Ensure guest session exists
         if (!session) {
             createGuest('Music Fan').catch(console.warn);
         }
         storage.getRecentRooms().then(setRecentRooms);
         AsyncStorage.getItem('roombeat_server_host').then((h) => {
-            if (h) setServerHost(h);
+            const resolved = resolveServerUrl(h);
+            setServerDisplay(resolved.isCloud ? 'Cloud (Render)' : resolved.display);
         }).catch(() => {});
     }, [session, createGuest]);
     return (<ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -61,7 +66,7 @@ export const HomeScreen = ({ navigation }) => {
       >
         <View style={styles.statusDot} />
         <Text style={styles.serverPillText}>
-          Server: {serverHost}:3000
+          Server: {serverDisplay}
         </Text>
         <Text style={styles.serverPillAction}>Change</Text>
       </TouchableOpacity>

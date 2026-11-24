@@ -6,13 +6,13 @@ import { Header } from '../components/common/Header';
 import { Card } from '../components/common/Card';
 import { useAppStore } from '../store/useAppStore';
 import { audioManager } from '../audio/AudioManager';
-import { CONFIG, DEFAULT_DEV_HOST } from '../constants/config';
+import { CONFIG, DEFAULT_DEV_HOST, DEFAULT_CLOUD_URL, resolveServerUrl } from '../constants/config';
 export const SettingsScreen = ({ navigation }) => {
     const keepScreenAwake = useAppStore((s) => s.keepScreenAwake);
     const setKeepScreenAwake = useAppStore((s) => s.setKeepScreenAwake);
     const autoReconnect = useAppStore((s) => s.autoReconnect);
     const setAutoReconnect = useAppStore((s) => s.setAutoReconnect);
-    const [serverHost, setServerHost] = useState(DEFAULT_DEV_HOST);
+    const [serverHost, setServerHost] = useState(DEFAULT_CLOUD_URL);
 
     useEffect(() => {
         AsyncStorage.getItem('roombeat_server_host').then((val) => {
@@ -20,12 +20,13 @@ export const SettingsScreen = ({ navigation }) => {
         }).catch(() => {});
     }, []);
 
-    const handleSaveHost = async () => {
-        const clean = serverHost.trim().replace(/^https?:\/\//i, '').replace(/:\d+.*$/, '').replace(/\/.*$/, '');
-        if (!clean) return;
-        setServerHost(clean);
-        await AsyncStorage.setItem('roombeat_server_host', clean);
-        Alert.alert('Server Host Saved', `App will now connect to http://${clean}:3000`);
+    const handleSaveHost = async (hostToSave) => {
+        const target = (typeof hostToSave === 'string' ? hostToSave : serverHost).trim();
+        if (!target) return;
+        setServerHost(target);
+        await AsyncStorage.setItem('roombeat_server_host', target);
+        const resolved = resolveServerUrl(target);
+        Alert.alert('Server Connected', `App will connect to:\n${resolved.apiBaseUrl}`);
     };
     const handleClearCache = async () => {
         Alert.alert('Clear Audio Cache', 'This will delete all temporarily cached tracks downloaded to this phone. Tracks will be re-downloaded when played.', [
@@ -67,25 +68,45 @@ export const SettingsScreen = ({ navigation }) => {
         </Card>
 
         {/* Server Connection */}
-        <Text style={styles.sectionHeader}>Server Connection (Wi-Fi LAN)</Text>
+        <Text style={styles.sectionHeader}>Server Connection</Text>
         <Card style={styles.card}>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingTitle}>Backend Host IP</Text>
-              <Text style={styles.settingDesc}>IP address of computer running RoomBeat backend</Text>
+              <Text style={styles.settingTitle}>Backend Server</Text>
+              <Text style={styles.settingDesc}>Choose 24/7 Cloud or your local Wi-Fi computer</Text>
             </View>
           </View>
+
+          {/* Quick Preset Buttons */}
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+            <TouchableOpacity 
+              style={[styles.saveBtn, { flex: 1, backgroundColor: serverHost === DEFAULT_CLOUD_URL ? colors.primary : colors.surfaceBorder }]}
+              onPress={() => handleSaveHost(DEFAULT_CLOUD_URL)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.saveBtnText}>Cloud (Render)</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.saveBtn, { flex: 1, backgroundColor: serverHost === DEFAULT_DEV_HOST ? colors.primary : colors.surfaceBorder }]}
+              onPress={() => handleSaveHost(DEFAULT_DEV_HOST)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.saveBtnText}>Local Mac</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
             <TextInput
               style={styles.hostInput}
               value={serverHost}
               onChangeText={setServerHost}
-              placeholder="e.g. 192.168.1.5"
+              placeholder="e.g. https://roombeat.onrender.com or 10.7.19.246"
               placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
               autoCorrect={false}
             />
-            <TouchableOpacity style={styles.saveBtn} onPress={handleSaveHost} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.saveBtn} onPress={() => handleSaveHost(serverHost)} activeOpacity={0.8}>
               <Text style={styles.saveBtnText}>Save</Text>
             </TouchableOpacity>
           </View>

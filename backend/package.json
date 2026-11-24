@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
+    "build": "node scripts/ensure-env.js && prisma generate && prisma db push --accept-data-loss",
+    "postinstall": "node scripts/ensure-env.js && prisma generate",
     "test": "node tests/verify.js",
     "db:generate": "prisma generate",
-    "db:push": "prisma db push",
+    "db:push": "node scripts/ensure-env.js && prisma db push --accept-data-loss",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio"
   },

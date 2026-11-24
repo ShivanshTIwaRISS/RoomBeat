@@ -12,7 +12,7 @@ exports.config = {
     nodeEnv: process.env.NODE_ENV || 'development',
     isDev: process.env.NODE_ENV !== 'production',
     database: {
-        url: process.env.DATABASE_URL || 'postgresql://roombeat:roombeat_dev_pass@localhost:5432/roombeat',
+        url: process.env.DATABASE_URL || 'file:./dev.db',
     },
     jwt: {
         secret: process.env.JWT_SECRET || 'roombeat_dev_jwt_secret_change_in_production',
