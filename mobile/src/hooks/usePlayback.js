@@ -3,6 +3,7 @@ import { useRoomStore } from '../store/useRoomStore';
 import { usePlaybackStore } from '../store/usePlaybackStore';
 import { playbackApi } from '../api/playback';
 import { nativeAudio } from '../audio/NativeAudioModule';
+import { audioManager } from '../audio/AudioManager';
 import { getActiveBaseUrl } from '../api/client';
 
 export const usePlayback = () => {
@@ -21,7 +22,7 @@ export const usePlayback = () => {
             const audioUri = isPreset
                 ? `${serverRoot}/demo.wav`
                 : `${baseUrl}/tracks/${track.id}/audio`;
-            await nativeAudio.prepareIfNeeded(audioUri);
+            await audioManager.prepareUrl(audioUri, isPreset ? 'demo' : track.id);
         } catch (e) {
             console.warn('[usePlayback] prepareIfNeeded error:', e);
         }

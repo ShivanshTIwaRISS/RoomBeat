@@ -18,6 +18,7 @@ import { tracksApi } from '../api/tracks';
 import { playbackApi } from '../api/playback';
 import { formatRoomCode } from '../utils/formatters';
 import { nativeAudio } from '../audio/NativeAudioModule';
+import { audioManager } from '../audio/AudioManager';
 import { getActiveBaseUrl } from '../api/client';
 import { storage } from '../utils/storage';
 import { clockSync } from '../sync/ClockSync';
@@ -66,7 +67,7 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                 try {
                     const baseUrl = await getActiveBaseUrl();
                     const audioUri = `${baseUrl}/tracks/${first.id}/audio`;
-                    await nativeAudio.prepareIfNeeded(audioUri);
+                    await audioManager.prepareUrl(audioUri, first.id);
                     setIsPrepared(true);
                 } catch (e) { }
             } else {
@@ -172,7 +173,7 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                     if (rawElapsed < 0) {
                         // Scheduled in the near future
                         if (!diag?.isPlaying) {
-                            await nativeAudio.prepareIfNeeded(audioUri);
+                            await audioManager.prepareUrl(audioUri, isPreset ? 'demo' : trackId);
                             const targetMono = await clockSync.serverEpochToLocalMonotonic(serverStartMs);
                             await nativeAudio.schedulePlay(basePos, targetMono);
                             usePlaybackStore.getState().setIsPlaying(true);
@@ -186,20 +187,20 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                             expectedPos = expectedPos % diag.durationMs;
                         }
                         if (!diag?.isPlaying) {
-                            await nativeAudio.prepareIfNeeded(audioUri);
+                            await audioManager.prepareUrl(audioUri, isPreset ? 'demo' : trackId);
                             if (expectedPos > 150 && diag?.playbackState !== 'buffering') {
-                                await nativeAudio.seek(expectedPos + 60);
+                                await nativeAudio.seek(expectedPos + 30);
                             }
                             await nativeAudio.play();
                             lastSeekAt = Date.now();
                             usePlaybackStore.getState().setIsPlaying(true);
                             usePlaybackStore.getState().setPosition(expectedPos);
                         } else if (diag?.playbackState === 'ready') {
-                            // Tight drift correction: snap if >150ms out of sync (with 5s cooldown)
+                            // Drift correction on local file: snap if >180ms out of sync (with 6s cooldown)
                             const drift = Math.abs((diag.positionMs || 0) - expectedPos);
-                            if (drift > 150 && Date.now() - lastSeekAt > 5000) {
+                            if (drift > 180 && Date.now() - lastSeekAt > 6000) {
                                 lastSeekAt = Date.now();
-                                await nativeAudio.seek(expectedPos + 60);
+                                await nativeAudio.seek(expectedPos + 30);
                             }
                         }
                     }

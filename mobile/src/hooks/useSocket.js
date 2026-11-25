@@ -8,6 +8,7 @@ import { storage } from '../utils/storage';
 import { clockSync } from '../sync/ClockSync';
 import { syncManager } from '../sync/SyncManager';
 import { nativeAudio } from '../audio/NativeAudioModule';
+import { audioManager } from '../audio/AudioManager';
 import { getActiveBaseUrl } from '../api/client';
 
 export const useSocket = (roomId) => {
@@ -234,7 +235,7 @@ export const useSocket = (roomId) => {
                         const audioUri = isPreset
                             ? `${serverRoot}/demo.wav`
                             : `${baseUrl}/tracks/${activeTrackId}/audio`;
-                        await nativeAudio.prepareIfNeeded(audioUri);
+                        await audioManager.prepareUrl(audioUri, isPreset ? 'demo' : activeTrackId);
                     } catch (prepErr) {}
 
                     // Schedule playback with native high-precision timer

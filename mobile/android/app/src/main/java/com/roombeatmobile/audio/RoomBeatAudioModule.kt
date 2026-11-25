@@ -15,6 +15,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
@@ -130,7 +131,11 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
             .setUsage(C.USAGE_MEDIA)
             .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .build()
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(1500, 10000, 100, 250)
+            .build()
         player = ExoPlayer.Builder(context)
+            .setLoadControl(loadControl)
             .setAudioAttributes(audioAttributes, true)
             .build()
             .apply {

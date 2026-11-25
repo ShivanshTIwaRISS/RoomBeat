@@ -1,6 +1,6 @@
 import RNFS from 'react-native-fs';
 import { nativeAudio } from './NativeAudioModule';
-import { API_BASE_URL } from '../constants/config';
+import { getActiveBaseUrl } from '../api/client';
 export class AudioManager {
     cacheDir = `${RNFS.CachesDirectoryPath}/roombeat_audio`;
     currentTrackId = null;
@@ -36,7 +36,8 @@ export class AudioManager {
         const localPath = this.getLocalTrackPath(trackId, filename);
         const exists = await RNFS.exists(localPath);
         if (!exists) {
-            const downloadUrl = `${API_BASE_URL}/api/v1/tracks/${trackId}/audio`;
+            const baseUrl = await getActiveBaseUrl();
+            const downloadUrl = `${baseUrl}/tracks/${trackId}/audio`;
             console.log(`[AudioManager] Downloading track ${trackId} from ${downloadUrl}`);
             const downloadResult = await RNFS.downloadFile({
                 fromUrl: downloadUrl,
@@ -71,6 +72,38 @@ export class AudioManager {
         this.currentLocalUri = localPath;
         this.isPrepared = true;
         return localPath;
+    }
+    /**
+     * Download any audio URL to local cache (once) and prepare ExoPlayer from disk
+     * for sample-accurate, zero-buffer-jitter synchronized playback.
+     */
+    async prepareUrl(audioUrl, cacheKey = 'default') {
+        try {
+            await this.ensureCacheDir();
+            const safeKey = String(cacheKey).replace(/[^a-zA-Z0-9._-]/g, '_');
+            const ext = audioUrl.includes('.wav') || audioUrl.endsWith('demo.wav') ? '.wav' : '.audio';
+            const localPath = `${this.cacheDir}/${safeKey}${ext}`;
+            const exists = await RNFS.exists(localPath);
+            if (!exists) {
+                const res = await RNFS.downloadFile({
+                    fromUrl: audioUrl,
+                    toFile: localPath,
+                }).promise;
+                if (res.statusCode !== 200 && res.statusCode !== 206) {
+                    await RNFS.unlink(localPath).catch(() => {});
+                    throw new Error(`HTTP ${res.statusCode}`);
+                }
+            }
+            await nativeAudio.prepareIfNeeded(localPath);
+            this.currentTrackId = cacheKey;
+            this.currentLocalUri = localPath;
+            this.isPrepared = true;
+            return localPath;
+        } catch (err) {
+            console.warn('[AudioManager] Local cache fallback to direct URL:', err?.message || err);
+            await nativeAudio.prepareIfNeeded(audioUrl);
+            return audioUrl;
+        }
     }
     /**
      * Schedule synchronized playback
