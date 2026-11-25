@@ -180,10 +180,8 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                         }
                     } else {
                         const compMs = syncManager.latencyCompensationMs || 0;
-                        // Include +80ms Android AudioTrack output latency compensation
-                        let expectedPos = basePos + rawElapsed + compMs + 80;
+                        let expectedPos = basePos + rawElapsed + compMs + 50;
                         if (diag?.durationMs > 0 && expectedPos >= diag.durationMs) {
-                            // Never silently abort playback due to clock skew or track wrap
                             expectedPos = expectedPos % diag.durationMs;
                         }
                         if (!diag?.isPlaying) {
@@ -195,23 +193,13 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                             lastSeekAt = Date.now();
                             usePlaybackStore.getState().setIsPlaying(true);
                             usePlaybackStore.getState().setPosition(expectedPos);
-                        } else if (diag?.playbackState === 'ready') {
-                            // Precision phase-locked sync on local cached file:
-                            // - |drift| > 180ms -> instant seek snap (5s cooldown)
-                            // - 45ms < |drift| <= 180ms -> smooth 1.03x / 0.97x speed nudge (zero audio glitch!)
-                            // - |drift| <= 45ms -> lock at 1.00x
-                            const signedDrift = (diag.positionMs || 0) - expectedPos;
-                            const absDrift = Math.abs(signedDrift);
-                            if (absDrift > 180 && Date.now() - lastSeekAt > 5000) {
+                        } else if (!useRoomStore.getState().isHost && diag?.playbackState === 'ready') {
+                            // Only speaker devices gently correct large drift (>250ms, max once per 10s);
+                            // host plays undisturbed at 1.0x as the canonical audio reference.
+                            const drift = Math.abs((diag.positionMs || 0) - expectedPos);
+                            if (drift > 250 && Date.now() - lastSeekAt > 10000) {
                                 lastSeekAt = Date.now();
-                                await nativeAudio.setPlaybackSpeed(1.0);
-                                await nativeAudio.seek(expectedPos + 20);
-                            } else if (absDrift > 45 && absDrift <= 180) {
-                                // Ahead (+drift) -> slow slightly (0.97); Behind (-drift) -> speed slightly (1.03)
-                                const nudge = signedDrift > 0 ? 0.97 : 1.03;
-                                await nativeAudio.setPlaybackSpeed(nudge);
-                            } else if ((diag.playbackSpeed || 1.0) !== 1.0) {
-                                await nativeAudio.setPlaybackSpeed(1.0);
+                                await nativeAudio.seek(expectedPos + 25);
                             }
                         }
                     }

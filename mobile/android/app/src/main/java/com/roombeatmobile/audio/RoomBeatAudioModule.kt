@@ -316,8 +316,8 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
                 }
 
                 val now = SystemClock.elapsedRealtime()
-                // Compensate ~80ms for Android AudioTrack mixer/hardware startup latency
-                val rawDelayMs = (targetMonotonicMs.toLong() - 80L) - now
+                // Compensate ~50ms for Android AudioTrack mixer startup latency
+                val rawDelayMs = (targetMonotonicMs.toLong() - 50L) - now
                 // Clamp positive delay so bad clock sync never causes a long silent wait
                 val delayMs = if (rawDelayMs > 5000L) 1500L else rawDelayMs
 
@@ -328,7 +328,7 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
                     val catchupMs = (-delayMs).coerceAtMost(30000L)
                     val targetPos = positionMs.toLong() + catchupMs
                     Log.w(TAG, "Target time passed by ${-delayMs}ms, catching up to pos=${targetPos}ms")
-                    if (targetPos > 50 || p.playbackState == Player.STATE_ENDED) {
+                    if (targetPos > 80 || p.playbackState == Player.STATE_ENDED) {
                         p.seekTo(targetPos)
                     }
                     p.playWhenReady = true
@@ -339,7 +339,8 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
                         putDouble("targetMissMs", (-delayMs).toDouble())
                     })
                 } else {
-                    if (positionMs > 50 || p.playbackState == Player.STATE_ENDED) {
+                    // Only seek if resuming mid-track (>80ms) or ended; skip seekTo(0) to avoid decoder flush jitter
+                    if (positionMs > 80 || p.playbackState == Player.STATE_ENDED) {
                         p.seekTo(positionMs.toLong())
                     }
                     // Schedule playback at the target time

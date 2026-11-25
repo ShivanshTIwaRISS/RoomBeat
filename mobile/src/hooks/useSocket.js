@@ -217,7 +217,7 @@ export const useSocket = (roomId) => {
                         setPosition(data.positionMs);
                     }
 
-                    // Compute target monotonic time using NTP clock offset + user calibration offset
+                    // Compute target monotonic time FIRST before any async prep
                     if (clockSync.samples.length === 0) {
                         socketService.sendClockPing();
                     }
@@ -225,17 +225,20 @@ export const useSocket = (roomId) => {
                     const targetMonotonicMs = (await clockSync.serverEpochToLocalMonotonic(serverEpochMs)) - compMs;
                     const pos = Number(data?.positionMs) || 0;
 
-                    // Only prepare if not already prepared for this URI
+                    // Prepare only if track isn't already prepared
                     try {
-                        const baseUrl = await getActiveBaseUrl();
-                        const serverRoot = baseUrl.replace('/api/v1', '');
                         const track = usePlaybackStore.getState().currentTrack;
                         const activeTrackId = data?.trackId || track?.id;
                         const isPreset = !activeTrackId || String(activeTrackId).startsWith('preset-');
-                        const audioUri = isPreset
-                            ? `${serverRoot}/demo.wav`
-                            : `${baseUrl}/tracks/${activeTrackId}/audio`;
-                        await audioManager.prepareUrl(audioUri, isPreset ? 'demo' : activeTrackId);
+                        const cacheKey = isPreset ? 'demo' : activeTrackId;
+                        if (!audioManager.isPrepared || audioManager.currentTrackId !== cacheKey) {
+                            const baseUrl = await getActiveBaseUrl();
+                            const serverRoot = baseUrl.replace('/api/v1', '');
+                            const audioUri = isPreset
+                                ? `${serverRoot}/demo.wav`
+                                : `${baseUrl}/tracks/${activeTrackId}/audio`;
+                            await audioManager.prepareUrl(audioUri, cacheKey);
+                        }
                     } catch (prepErr) {}
 
                     // Schedule playback with native high-precision timer
