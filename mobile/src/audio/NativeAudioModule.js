@@ -32,6 +32,12 @@ class NativeAudioBridge {
         }
         return Date.now();
     }
+    async getTimeSnapshot() {
+        if (this.isNativeAvailable && RoomBeatAudio.getTimeSnapshot) {
+            return RoomBeatAudio.getTimeSnapshot();
+        }
+        return { monotonicMs: Date.now(), epochMs: Date.now() };
+    }
     async prepare(trackUri) {
         this.currentPreparedUri = trackUri;
         if (this.isNativeAvailable) {
@@ -112,6 +118,12 @@ class NativeAudioBridge {
     async setVolume(volume) {
         if (this.isNativeAvailable) {
             return RoomBeatAudio.setVolume(volume);
+        }
+        return true;
+    }
+    async setPlaybackSpeed(speed) {
+        if (this.isNativeAvailable && RoomBeatAudio.setPlaybackSpeed) {
+            return RoomBeatAudio.setPlaybackSpeed(speed);
         }
         return true;
     }

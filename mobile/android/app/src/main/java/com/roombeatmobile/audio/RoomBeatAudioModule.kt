@@ -522,6 +522,22 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
     }
 
     /**
+     * Temporarily adjust playback speed (e.g. 0.97 - 1.03) for glitch-free phase-locked sync.
+     */
+    @ReactMethod
+    fun setPlaybackSpeed(speed: Double, promise: Promise) {
+        mainHandler.post {
+            try {
+                val p = player ?: throw IllegalStateException("Player not initialized")
+                p.setPlaybackSpeed(speed.toFloat().coerceIn(0.90f, 1.10f))
+                promise.resolve(true)
+            } catch (e: Exception) {
+                promise.reject("ERR_SPEED", e.message, e)
+            }
+        }
+    }
+
+    /**
      * Release the player and all resources.
      */
     @ReactMethod

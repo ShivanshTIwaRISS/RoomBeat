@@ -196,11 +196,22 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                             usePlaybackStore.getState().setIsPlaying(true);
                             usePlaybackStore.getState().setPosition(expectedPos);
                         } else if (diag?.playbackState === 'ready') {
-                            // Drift correction on local file: snap if >180ms out of sync (with 6s cooldown)
-                            const drift = Math.abs((diag.positionMs || 0) - expectedPos);
-                            if (drift > 180 && Date.now() - lastSeekAt > 6000) {
+                            // Precision phase-locked sync on local cached file:
+                            // - |drift| > 180ms -> instant seek snap (5s cooldown)
+                            // - 45ms < |drift| <= 180ms -> smooth 1.03x / 0.97x speed nudge (zero audio glitch!)
+                            // - |drift| <= 45ms -> lock at 1.00x
+                            const signedDrift = (diag.positionMs || 0) - expectedPos;
+                            const absDrift = Math.abs(signedDrift);
+                            if (absDrift > 180 && Date.now() - lastSeekAt > 5000) {
                                 lastSeekAt = Date.now();
-                                await nativeAudio.seek(expectedPos + 30);
+                                await nativeAudio.setPlaybackSpeed(1.0);
+                                await nativeAudio.seek(expectedPos + 20);
+                            } else if (absDrift > 45 && absDrift <= 180) {
+                                // Ahead (+drift) -> slow slightly (0.97); Behind (-drift) -> speed slightly (1.03)
+                                const nudge = signedDrift > 0 ? 0.97 : 1.03;
+                                await nativeAudio.setPlaybackSpeed(nudge);
+                            } else if ((diag.playbackSpeed || 1.0) !== 1.0) {
+                                await nativeAudio.setPlaybackSpeed(1.0);
                             }
                         }
                     }

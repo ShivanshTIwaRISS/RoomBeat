@@ -57,11 +57,14 @@ export class ClockSync {
      * Convert server epoch timestamp to local monotonic clock timestamp
      */
     async serverEpochToLocalMonotonic(serverEpochMs) {
-        const localEpochNow = Date.now();
-        const localMonotonicNow = await nativeAudio.getMonotonicTimeMs();
+        const snapshot = nativeAudio.getTimeSnapshot
+            ? await nativeAudio.getTimeSnapshot()
+            : { epochMs: Date.now(), monotonicMs: await nativeAudio.getMonotonicTimeMs() };
+        const localEpochNow = snapshot.epochMs;
+        const localMonotonicNow = snapshot.monotonicMs;
         // Local epoch time corresponding to serverEpochMs
         const localTargetEpoch = serverEpochMs - this.estimatedOffset;
-        // Map to monotonic clock
+        // Map to monotonic clock with zero bridge-latency skew
         const deltaMs = localTargetEpoch - localEpochNow;
         return localMonotonicNow + deltaMs;
     }
