@@ -41,9 +41,9 @@ export class ClockSync {
     computeEstimates() {
         if (this.samples.length === 0)
             return;
-        // Sort by RTT and take the best 60% of samples (lowest network jitter)
+        // Sort by RTT and take the best 40% of samples (lowest network jitter / asymmetry)
         const sortedByRtt = [...this.samples].sort((a, b) => a.roundTripTime - b.roundTripTime);
-        const validCount = Math.max(1, Math.ceil(sortedByRtt.length * 0.6));
+        const validCount = Math.max(1, Math.ceil(sortedByRtt.length * 0.4));
         const bestSamples = sortedByRtt.slice(0, validCount);
         // Median offset among best samples
         const offsets = bestSamples.map((s) => s.clockOffset).sort((a, b) => a - b);

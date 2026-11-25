@@ -324,9 +324,9 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
                 Log.d(TAG, "Scheduling play: position=$positionMs, targetMonotonic=$targetMonotonicMs, rawDelay=${rawDelayMs}ms, delay=${delayMs}ms")
 
                 if (delayMs <= 0) {
-                    // Target time already passed: catch up by seeking forward by -delayMs!
+                    // Target time already passed: catch up by seeking forward (+40ms seek-resume compensation)
                     val catchupMs = (-delayMs).coerceAtMost(30000L)
-                    val targetPos = positionMs.toLong() + catchupMs
+                    val targetPos = positionMs.toLong() + catchupMs + 40L
                     Log.w(TAG, "Target time passed by ${-delayMs}ms, catching up to pos=${targetPos}ms")
                     if (targetPos > 80 || p.playbackState == Player.STATE_ENDED) {
                         p.seekTo(targetPos)

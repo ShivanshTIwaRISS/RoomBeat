@@ -62,23 +62,24 @@ class SocketService {
         return this.socket;
     }
     /**
-     * Start NTP clock ping-pong bursts
+     * Start NTP clock ping-pong bursts (waits 400ms for WebSocket upgrade so RTT is clean)
      */
     startClockSync() {
         this.stopClockSync();
-        // Initial burst of 8 rapid pings for quick convergence
-        let burstCount = 0;
-        const burstTimer = setInterval(() => {
-            this.sendClockPing();
-            burstCount++;
-            if (burstCount >= 8) {
-                clearInterval(burstTimer);
-            }
-        }, 300);
-        // Steady periodic sync every 15 seconds
+        setTimeout(() => {
+            let burstCount = 0;
+            const burstTimer = setInterval(() => {
+                this.sendClockPing();
+                burstCount++;
+                if (burstCount >= 6) {
+                    clearInterval(burstTimer);
+                }
+            }, 180);
+        }, 400);
+        // Continuous low-overhead sync every 4 seconds so clock offset stays tight
         this.clockPingInterval = setInterval(() => {
             this.sendClockPing();
-        }, 15000);
+        }, 4000);
     }
     sendClockPing() {
         if (this.socket && this.socket.connected) {

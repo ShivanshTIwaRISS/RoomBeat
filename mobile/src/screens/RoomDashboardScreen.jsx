@@ -194,12 +194,12 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                             usePlaybackStore.getState().setIsPlaying(true);
                             usePlaybackStore.getState().setPosition(expectedPos);
                         } else if (!useRoomStore.getState().isHost && diag?.playbackState === 'ready') {
-                            // Only speaker devices gently correct large drift (>250ms, max once per 10s);
+                            // Only speaker devices gently correct drift (>120ms, max once per 6s);
                             // host plays undisturbed at 1.0x as the canonical audio reference.
                             const drift = Math.abs((diag.positionMs || 0) - expectedPos);
-                            if (drift > 250 && Date.now() - lastSeekAt > 10000) {
+                            if (drift > 120 && Date.now() - lastSeekAt > 6000) {
                                 lastSeekAt = Date.now();
-                                await nativeAudio.seek(expectedPos + 25);
+                                await nativeAudio.seek(expectedPos + 20);
                             }
                         }
                     }
