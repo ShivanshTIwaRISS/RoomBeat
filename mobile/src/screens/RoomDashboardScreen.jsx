@@ -68,7 +68,7 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                     const audioUri = `${baseUrl}/tracks/${first.id}/audio`;
                     await nativeAudio.prepareIfNeeded(audioUri);
                     setIsPrepared(true);
-                } catch (e) {}
+                } catch (e) { }
             } else {
                 // Default synchronized demo beat
                 setCurrentTrack({
@@ -83,7 +83,7 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                     const serverRoot = baseUrl.replace('/api/v1', '');
                     await nativeAudio.prepare(`${serverRoot}/demo.wav`);
                     setIsPrepared(true);
-                } catch (e) {}
+                } catch (e) { }
             }
         }).catch(async () => {
             setCurrentTrack({
@@ -98,7 +98,7 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                 const serverRoot = baseUrl.replace('/api/v1', '');
                 await nativeAudio.prepare(`${serverRoot}/demo.wav`);
                 setIsPrepared(true);
-            } catch (e) {}
+            } catch (e) { }
         });
     }, [roomId, setCurrentTrack, setDuration, setIsPrepared]);
     useEffect(() => {
@@ -115,7 +115,7 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                     setRoom(data, data.hostSessionId, currentSid);
                 }
             } catch (e) { console.warn('[RoomDashboard] setRoom error:', e); }
-        }).catch(() => {});
+        }).catch(() => { });
     }, [roomId, setRoom, session]);
 
     // Backup sync & drift-correction poller: guarantees second phone plays & stays in sync
@@ -147,7 +147,7 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                             setCurrentTrack(tData);
                             setDuration(tData.durationMs || 180000);
                         }
-                    } catch (e) {}
+                    } catch (e) { }
                     await nativeAudio.prepare(audioUri);
                     setIsPrepared(true);
                 }
@@ -209,7 +209,7 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                         usePlaybackStore.getState().setIsPlaying(false);
                     }
                 }
-            } catch (e) {}
+            } catch (e) { }
         };
 
         const interval = setInterval(syncStateFromServer, 2500);
@@ -229,73 +229,73 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
         ]);
     };
     return (<View style={styles.container}>
-      {/* Room Header */}
-      <Header title={currentRoom?.name || 'RoomBeat Session'} subtitle={`Code: ${formatRoomCode(currentRoom?.code || '')}`} onBack={handleLeave} rightAction={<View style={styles.headerActions}>
+        {/* Room Header */}
+        <Header title={currentRoom?.name || 'RoomBeat Session'} subtitle={`Code: ${formatRoomCode(currentRoom?.code || '')}`} onBack={handleLeave} rightAction={<View style={styles.headerActions}>
             <TouchableOpacity onPress={() => setQrModalVisible(true)} style={styles.qrHeaderBtn} activeOpacity={0.7}>
-              <Text style={styles.qrIcon}>QR Code</Text>
+                <Text style={styles.qrIcon}>QR Code</Text>
             </TouchableOpacity>
-          </View>}/>
+        </View>} />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Sync Status Banner */}
-        <TouchableOpacity onPress={() => navigation.navigate('SyncDashboard', { roomId })} activeOpacity={0.8}>
-          <SyncOverview clockOffsetMs={clockOffsetMs} roundTripTimeMs={roundTripTimeMs} playbackDriftMs={playbackDriftMs} health={syncHealth}/>
-        </TouchableOpacity>
+        <ScrollView contentContainerStyle={styles.content}>
+            {/* Sync Status Banner */}
+            <TouchableOpacity onPress={() => navigation.navigate('SyncDashboard', { roomId })} activeOpacity={0.8}>
+                <SyncOverview clockOffsetMs={clockOffsetMs} roundTripTimeMs={roundTripTimeMs} playbackDriftMs={playbackDriftMs} health={syncHealth} />
+            </TouchableOpacity>
 
-        {/* Now Playing Widget */}
-        <NowPlaying track={currentTrack} positionMs={positionMs} durationMs={durationMs} isPlaying={isPlaying}/>
+            {/* Now Playing Widget */}
+            <NowPlaying track={currentTrack} positionMs={positionMs} durationMs={durationMs} isPlaying={isPlaying} />
 
-        {/* Music Controls (Host Enabled) */}
-        <MusicControls isPlaying={isPlaying} isHost={isHost} onPlay={playbackControls.play} onPause={playbackControls.pause} onPrevious={playbackControls.previous} onNext={playbackControls.next}/>
+            {/* Music Controls (Host Enabled) */}
+            <MusicControls isPlaying={isPlaying} isHost={isHost} onPlay={playbackControls.play} onPause={playbackControls.pause} onPrevious={playbackControls.previous} onNext={playbackControls.next} />
 
-        {/* Navigation Action Pills */}
-        <View style={styles.pillsRow}>
-          <TouchableOpacity style={styles.actionPill} onPress={() => navigation.navigate('MusicLibrary', { roomId })}>
-            <Text style={styles.pillLabel}>Library</Text>
-          </TouchableOpacity>
+            {/* Navigation Action Pills */}
+            <View style={styles.pillsRow}>
+                <TouchableOpacity style={styles.actionPill} onPress={() => navigation.navigate('MusicLibrary', { roomId })}>
+                    <Text style={styles.pillLabel}>Library</Text>
+                </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionPill} onPress={() => navigation.navigate('Queue', { roomId })}>
-            <Text style={styles.pillLabel}>Queue</Text>
-          </TouchableOpacity>
+                <TouchableOpacity style={styles.actionPill} onPress={() => navigation.navigate('Queue', { roomId })}>
+                    <Text style={styles.pillLabel}>Queue</Text>
+                </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionPill} onPress={() => navigation.navigate('DeviceCalibration', { roomId })}>
-            <Text style={styles.pillLabel}>Calibrate</Text>
-          </TouchableOpacity>
+                <TouchableOpacity style={styles.actionPill} onPress={() => navigation.navigate('DeviceCalibration', { roomId })}>
+                    <Text style={styles.pillLabel}>Calibrate</Text>
+                </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionPill} onPress={() => navigation.navigate('SyncDashboard', { roomId })}>
-            <Text style={styles.pillLabel}>Sync Metrics</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Connected Speakers */}
-        <DeviceList members={members} maxDevices={currentRoom?.maxDevices || 10}/>
-      </ScrollView>
-
-      {/* QR Code Share Modal */}
-      <Modal visible={qrModalVisible} transparent animationType="fade" onRequestClose={() => setQrModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Join with QR</Text>
-            <Text style={styles.modalSubtitle}>
-              Scan with the RoomBeat app on any phone to join this audio room.
-            </Text>
-
-            <View style={styles.qrWrapper}>
-              {QRCode ? (
-                <QRCode value={`roombeat://join?code=${currentRoom?.code || ''}`} size={200} backgroundColor="transparent" color={colors.primary}/>
-              ) : (
-                <Text style={styles.roomCodeDisplay}>{formatRoomCode(currentRoom?.code || '')}</Text>
-              )}
+                <TouchableOpacity style={styles.actionPill} onPress={() => navigation.navigate('SyncDashboard', { roomId })}>
+                    <Text style={styles.pillLabel}>Sync Metrics</Text>
+                </TouchableOpacity>
             </View>
 
-            <Text style={styles.roomCodeDisplay}>
-              {formatRoomCode(currentRoom?.code || '')}
-            </Text>
+            {/* Connected Speakers */}
+            <DeviceList members={members} maxDevices={currentRoom?.maxDevices || 10} />
+        </ScrollView>
 
-            <Button title="Close" variant="secondary" onPress={() => setQrModalVisible(false)} style={styles.modalCloseBtn}/>
-          </View>
-        </View>
-      </Modal>
+        {/* QR Code Share Modal */}
+        <Modal visible={qrModalVisible} transparent animationType="fade" onRequestClose={() => setQrModalVisible(false)}>
+            <View style={styles.modalOverlay}>
+                <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Join with QR</Text>
+                    <Text style={styles.modalSubtitle}>
+                        Scan with the RoomBeat app on any phone to join this audio room.
+                    </Text>
+
+                    <View style={styles.qrWrapper}>
+                        {QRCode ? (
+                            <QRCode value={`roombeat://join?code=${currentRoom?.code || ''}`} size={200} backgroundColor="transparent" color={colors.primary} />
+                        ) : (
+                            <Text style={styles.roomCodeDisplay}>{formatRoomCode(currentRoom?.code || '')}</Text>
+                        )}
+                    </View>
+
+                    <Text style={styles.roomCodeDisplay}>
+                        {formatRoomCode(currentRoom?.code || '')}
+                    </Text>
+
+                    <Button title="Close" variant="secondary" onPress={() => setQrModalVisible(false)} style={styles.modalCloseBtn} />
+                </View>
+            </View>
+        </Modal>
     </View>);
 };
 const styles = StyleSheet.create({
