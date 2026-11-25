@@ -88,13 +88,22 @@ export const UploadMusicScreen = ({ navigation, route }) => {
             setUploading(true);
             setProgress(0.2);
 
+            const fileName = pickedFile.name || 'track.mp3';
+            const lower = fileName.toLowerCase();
+            const mimeType = lower.endsWith('.wav') ? 'audio/wav'
+                : lower.endsWith('.m4a') ? 'audio/mp4'
+                : lower.endsWith('.aac') ? 'audio/aac'
+                : lower.endsWith('.ogg') ? 'audio/ogg'
+                : lower.endsWith('.flac') ? 'audio/flac'
+                : 'audio/mpeg';
+
             const formData = new FormData();
             formData.append('title', titleToUse);
             formData.append('artist', artistToUse);
             formData.append('file', {
                 uri: pickedFile.uri,
-                type: 'audio/mpeg',
-                name: pickedFile.name || 'track.mp3',
+                type: mimeType,
+                name: fileName,
             });
 
             setProgress(0.6);

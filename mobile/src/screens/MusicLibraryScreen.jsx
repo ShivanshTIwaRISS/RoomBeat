@@ -35,14 +35,17 @@ export const MusicLibraryScreen = ({ navigation, route, }) => {
     };
     useEffect(() => {
         fetchTracks();
-    }, [roomId]);
-    const handlePlayNow = (track) => {
+        const unsub = navigation.addListener('focus', fetchTracks);
+        return unsub;
+    }, [roomId, navigation]);
+    const handlePlayNow = async (track) => {
         if (!isHost) {
             Alert.alert('Host Control', 'Only the room host can initiate track playback.');
             return;
         }
         setCurrentTrack(track);
-        prepare(track.id);
+        usePlaybackStore.getState().setDuration(track.durationMs || 180000);
+        await prepare(track.id);
         navigation.goBack();
     };
     const handleAddToQueue = async (track) => {

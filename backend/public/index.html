@@ -1982,6 +1982,10 @@
           document.getElementById('now-playing-title').innerText = title;
           document.getElementById('now-playing-artist').innerText = 'Local Audio (' + (isHost ? 'Host' : 'Speaker') + ')';
           document.getElementById('time-total').innerText = formatTime(audioBuffer.duration);
+          // Also upload & share to room in background if host so connected phones get the exact same track!
+          if (isHost && currentRoom) {
+            handleFileUpload({ target: { files: [file] } }).catch(() => {});
+          }
           document.getElementById('track-dur-badge').innerText = formatTime(audioBuffer.duration);
           toast(`[LOADED] "${title}"`, 'success');
           log(`[READY] "${title}" (${audioBuffer.duration.toFixed(1)}s)`, true, 'room-logs');

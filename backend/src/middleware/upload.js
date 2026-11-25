@@ -29,13 +29,19 @@ const fileFilter = (_req, file, cb) => {
         'audio/mp3',
         'audio/wav',
         'audio/x-wav',
+        'audio/wave',
+        'audio/vnd.wave',
         'audio/m4a',
         'audio/x-m4a',
+        'audio/mp4',
         'audio/aac',
         'audio/ogg',
+        'audio/flac',
+        'audio/x-flac',
+        'audio/webm',
         'application/octet-stream', // Some Android devices upload as octet-stream
     ];
-    const allowedExtensions = ['.mp3', '.wav', '.m4a', '.aac', '.ogg'];
+    const allowedExtensions = ['.mp3', '.wav', '.m4a', '.mp4', '.aac', '.ogg', '.flac', '.webm', '.opus'];
     const ext = path_1.default.extname(file.originalname).toLowerCase();
     if (allowedMimeTypes.includes(file.mimetype) || allowedExtensions.includes(ext)) {
         cb(null, true);
