@@ -54,37 +54,47 @@ export const usePlayback = () => {
         if (!currentRoom)
             return;
         usePlaybackStore.getState().setIsPlaying(true);
-        await ensureAudioPrepared();
+        if (!audioManager.isPrepared) {
+            await ensureAudioPrepared();
+        }
 
         const socket = socketService.getSocket();
-        const pos = customPositionMs !== undefined ? customPositionMs : positionMs;
+        let pos = customPositionMs;
+        if (pos === undefined) {
+            try {
+                const p = await nativeAudio.getPlaybackPosition();
+                pos = (p && typeof p.positionMs === 'number' && p.positionMs >= 0) ? Math.round(p.positionMs) : positionMs;
+            } catch (e) {
+                pos = positionMs;
+            }
+        }
         if (socket && socket.connected) {
             socket.emit('host:playback:play', {
                 roomId: currentRoom.id,
                 positionMs: pos,
-                delayMs: 2000,
+                delayMs: 900,
             });
-            // Safety fallback: if playback:scheduled didn't start native ExoPlayer within 3.2s, play locally
+            // Safety fallback: if playback:scheduled didn't start native ExoPlayer within 1.8s, play locally
             setTimeout(async () => {
                 try {
                     if (!usePlaybackStore.getState().isPlaying) return;
                     const diag = await nativeAudio.getPlaybackDiagnostics();
                     if (!diag?.isPlaying) {
-                        if (pos > 0) await nativeAudio.seek(pos);
+                        if (pos > 80) await nativeAudio.seek(pos);
                         await nativeAudio.play();
                     }
                 } catch (e) {}
-            }, 3200);
+            }, 1800);
         }
         else {
             // Fallback: play locally right away AND notify backend via REST
             try {
-                if (pos > 0) await nativeAudio.seek(pos);
+                if (pos > 80) await nativeAudio.seek(pos);
                 await nativeAudio.play();
             } catch (e) {
                 console.warn('[usePlayback] local play fallback error:', e);
             }
-            playbackApi.play(currentRoom.id, pos, 1500).catch(console.warn);
+            playbackApi.play(currentRoom.id, pos, 900).catch(console.warn);
         }
     };
 
@@ -92,14 +102,15 @@ export const usePlayback = () => {
         if (!currentRoom)
             return;
         usePlaybackStore.getState().setIsPlaying(false);
+        // Pause locally immediately so host stops with zero network lag
+        try {
+            await nativeAudio.pause();
+        } catch (e) {}
         const socket = socketService.getSocket();
         if (socket && socket.connected) {
             socket.emit('host:playback:pause', { roomId: currentRoom.id });
         }
         else {
-            try {
-                await nativeAudio.pause();
-            } catch (e) {}
             playbackApi.pause(currentRoom.id).catch(console.warn);
         }
     };

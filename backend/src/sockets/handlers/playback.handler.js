@@ -38,7 +38,7 @@ const registerPlaybackHandlers = (io, socket) => {
         if (!session)
             return;
         try {
-            const result = await playback_service_1.playbackService.schedulePlay(data.roomId, session.id, data.positionMs ?? 0, data.delayMs ?? 3000);
+            const result = await playback_service_1.playbackService.schedulePlay(data.roomId, session.id, data.positionMs ?? 0, data.delayMs ?? 900);
             io.to(data.roomId).emit('playback:scheduled', {
                 trackId: result.playbackState.currentTrackId,
                 positionMs: result.playbackState.positionMs,

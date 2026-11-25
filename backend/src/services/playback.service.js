@@ -103,10 +103,10 @@ class PlaybackService {
     /**
      * Schedule synchronized playback at a future timestamp
      */
-    async schedulePlay(roomId, requesterSessionId, positionMs = 0, delayMs = 3000) {
+    async schedulePlay(roomId, requesterSessionId, positionMs = 0, delayMs = 900) {
         await this.ensureMember(roomId, requesterSessionId);
         const nowEpoch = Date.now();
-        const clampedDelay = Math.max(1000, Math.min(delayMs, 10000));
+        const clampedDelay = Math.max(400, Math.min(delayMs, 10000));
         const startAtServerEpochMs = BigInt(nowEpoch + clampedDelay);
         const updated = await database_1.prisma.playbackState.upsert({
             where: { roomId },

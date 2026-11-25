@@ -255,10 +255,13 @@ export const useSocket = (roomId) => {
                 if (!isMounted) return;
                 try {
                     setIsPlaying(false);
+                    setPlaybackState({ status: 'paused', serverStartAt: null });
+                    await nativeAudio.pause();
                     if (data?.positionMs !== undefined) {
                         setPosition(data.positionMs);
+                        // Park ExoPlayer at exact canonical server pause position so resume is sample-aligned
+                        await nativeAudio.seek(data.positionMs);
                     }
-                    await nativeAudio.pause();
                 } catch (e) { console.warn('[Socket] pause error:', e); }
             });
 

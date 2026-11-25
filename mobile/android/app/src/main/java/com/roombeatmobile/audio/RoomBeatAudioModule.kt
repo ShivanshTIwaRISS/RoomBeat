@@ -404,7 +404,16 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
         mainHandler.post {
             try {
                 val p = player ?: throw IllegalStateException("Player not initialized")
+                scheduledPlayRunnable?.let { mainHandler.removeCallbacks(it) }
+                scheduledPlayRunnable = null
+                p.playWhenReady = false
                 p.pause()
+                emitEvent(EVENT_PLAYBACK_POSITION, Arguments.createMap().apply {
+                    putDouble("positionMs", p.currentPosition.toDouble())
+                    putDouble("durationMs", p.duration.toDouble())
+                    putDouble("monotonicMs", SystemClock.elapsedRealtime().toDouble())
+                    putBoolean("isPlaying", false)
+                })
                 promise.resolve(true)
             } catch (e: Exception) {
                 promise.reject("ERR_PAUSE", e.message, e)
@@ -602,7 +611,7 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
                             putDouble("monotonicMs", SystemClock.elapsedRealtime().toDouble())
                             putBoolean("isPlaying", true)
                         })
-                        mainHandler.postDelayed(this, 1000) // Report every 1 second
+                        mainHandler.postDelayed(this, 250) // Report every 250ms for tight UI & resume sync
                     }
                 }
             }

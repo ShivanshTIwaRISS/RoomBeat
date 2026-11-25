@@ -159,9 +159,9 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                 const localNowMid = Math.round((tBeforeDiag + tAfterDiag) / 2);
 
                 if (ps.status === 'playing' && ps.serverStartAt) {
-                    // Don't interfere while a scheduled play is still counting down (within 2.5s)
+                    // Don't interfere while a scheduled play is still counting down (within 1.4s)
                     const schedLocal = usePlaybackStore.getState().playbackState?.scheduledAtLocalMs || 0;
-                    if (!diag?.isPlaying && Date.now() - schedLocal < 2600) {
+                    if (!diag?.isPlaying && Date.now() - schedLocal < 1400) {
                         return;
                     }
 

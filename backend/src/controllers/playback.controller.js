@@ -44,7 +44,7 @@ const playPlayback = async (req, res) => {
         if (!req.session)
             return (0, response_1.sendError)(res, 'Unauthorized', 'UNAUTHORIZED', 401);
         const positionMs = req.body.positionMs ?? 0;
-        const delayMs = req.body.delayMs ?? 1500;
+        const delayMs = req.body.delayMs ?? 900;
         const result = await playback_service_1.playbackService.schedulePlay(req.params.roomId, req.session.id, positionMs, delayMs);
         try {
             const { io } = require('../server');
