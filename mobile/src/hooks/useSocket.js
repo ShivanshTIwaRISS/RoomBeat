@@ -6,6 +6,7 @@ import { usePlaybackStore } from '../store/usePlaybackStore';
 import { useSyncStore } from '../store/useSyncStore';
 import { storage } from '../utils/storage';
 import { clockSync } from '../sync/ClockSync';
+import { syncManager } from '../sync/SyncManager';
 import { nativeAudio } from '../audio/NativeAudioModule';
 import { getActiveBaseUrl } from '../api/client';
 
@@ -214,8 +215,12 @@ export const useSocket = (roomId) => {
                         setPosition(data.positionMs);
                     }
 
-                    // Compute target monotonic time using NTP clock offset
-                    const targetMonotonicMs = await clockSync.serverEpochToLocalMonotonic(serverEpochMs);
+                    // Compute target monotonic time using NTP clock offset + user calibration offset
+                    if (clockSync.samples.length === 0) {
+                        socketService.sendClockPing();
+                    }
+                    const compMs = syncManager.latencyCompensationMs || 0;
+                    const targetMonotonicMs = (await clockSync.serverEpochToLocalMonotonic(serverEpochMs)) - compMs;
                     const pos = Number(data?.positionMs) || 0;
 
                     // Only prepare if not already prepared for this URI

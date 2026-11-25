@@ -21,6 +21,7 @@ import { nativeAudio } from '../audio/NativeAudioModule';
 import { getActiveBaseUrl } from '../api/client';
 import { storage } from '../utils/storage';
 import { clockSync } from '../sync/ClockSync';
+import { syncManager } from '../sync/SyncManager';
 
 // Conditionally import QRCode — if the native module is missing, fall back gracefully
 let QRCode = null;
@@ -122,6 +123,7 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
     useEffect(() => {
         if (!roomId) return;
         let cancelled = false;
+        let lastSeekAt = 0;
         const syncStateFromServer = async () => {
             try {
                 const res = await playbackApi.getState(roomId);
@@ -167,24 +169,27 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                             usePlaybackStore.getState().setIsPlaying(true);
                         }
                     } else {
-                        let expectedPos = basePos + rawElapsed;
+                        const compMs = syncManager.latencyCompensationMs || 0;
+                        let expectedPos = basePos + rawElapsed + compMs;
                         if (diag?.durationMs > 0 && expectedPos >= diag.durationMs) {
                             // Never silently abort playback due to clock skew or track wrap
                             expectedPos = expectedPos % diag.durationMs;
                         }
                         if (!diag?.isPlaying) {
                             await nativeAudio.prepareIfNeeded(audioUri);
-                            if (expectedPos > 200 && diag?.playbackState !== 'buffering') {
-                                await nativeAudio.seek(expectedPos);
+                            if (expectedPos > 150 && diag?.playbackState !== 'buffering') {
+                                await nativeAudio.seek(expectedPos + 60);
                             }
                             await nativeAudio.play();
+                            lastSeekAt = Date.now();
                             usePlaybackStore.getState().setIsPlaying(true);
                             usePlaybackStore.getState().setPosition(expectedPos);
                         } else if (diag?.playbackState === 'ready') {
-                            // Drift correction: snap if >400ms out of sync with host/server
+                            // Tight drift correction: snap if >120ms out of sync (with 3.5s cooldown)
                             const drift = Math.abs((diag.positionMs || 0) - expectedPos);
-                            if (drift > 400) {
-                                await nativeAudio.seek(expectedPos);
+                            if (drift > 120 && Date.now() - lastSeekAt > 3500) {
+                                lastSeekAt = Date.now();
+                                await nativeAudio.seek(expectedPos + 60);
                             }
                         }
                     }
