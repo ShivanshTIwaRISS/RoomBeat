@@ -61,9 +61,9 @@ export const usePlayback = () => {
             socket.emit('host:playback:play', {
                 roomId: currentRoom.id,
                 positionMs: pos,
-                delayMs: 1500,
+                delayMs: 2000,
             });
-            // Safety fallback: if playback:scheduled didn't start native ExoPlayer within 2.5s, play locally
+            // Safety fallback: if playback:scheduled didn't start native ExoPlayer within 3.2s, play locally
             setTimeout(async () => {
                 try {
                     if (!usePlaybackStore.getState().isPlaying) return;
@@ -73,7 +73,7 @@ export const usePlayback = () => {
                         await nativeAudio.play();
                     }
                 } catch (e) {}
-            }, 2500);
+            }, 3200);
         }
         else {
             // Fallback: play locally right away AND notify backend via REST

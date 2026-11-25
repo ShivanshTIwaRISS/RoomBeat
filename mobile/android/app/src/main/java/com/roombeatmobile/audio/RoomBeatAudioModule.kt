@@ -310,22 +310,22 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
                     p.prepare()
                 }
 
-                // Seek only if needed (avoids stalling initial HTTP buffering at pos 0)
-                if (positionMs > 50 || p.playbackState == Player.STATE_ENDED) {
-                    p.seekTo(positionMs.toLong())
-                }
-
                 val now = SystemClock.elapsedRealtime()
-                val rawDelayMs = targetMonotonicMs.toLong() - now
-                // Clamp delay so clock skew never causes a long silent wait
+                // Compensate ~80ms for Android AudioTrack mixer/hardware startup latency
+                val rawDelayMs = (targetMonotonicMs.toLong() - 80L) - now
+                // Clamp positive delay so bad clock sync never causes a long silent wait
                 val delayMs = if (rawDelayMs > 5000L) 1500L else rawDelayMs
 
                 Log.d(TAG, "Scheduling play: position=$positionMs, targetMonotonic=$targetMonotonicMs, rawDelay=${rawDelayMs}ms, delay=${delayMs}ms")
 
                 if (delayMs <= 0) {
-                    // Target time already passed, play immediately
-                    Log.w(TAG, "Target time already passed by ${-delayMs}ms, playing immediately")
-                    if (p.playbackState == Player.STATE_ENDED) p.seekTo(0)
+                    // Target time already passed: catch up by seeking forward by -delayMs!
+                    val catchupMs = (-delayMs).coerceAtMost(30000L)
+                    val targetPos = positionMs.toLong() + catchupMs
+                    Log.w(TAG, "Target time passed by ${-delayMs}ms, catching up to pos=${targetPos}ms")
+                    if (targetPos > 50 || p.playbackState == Player.STATE_ENDED) {
+                        p.seekTo(targetPos)
+                    }
                     p.playWhenReady = true
                     p.play()
                     promise.resolve(Arguments.createMap().apply {
@@ -334,6 +334,9 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
                         putDouble("targetMissMs", (-delayMs).toDouble())
                     })
                 } else {
+                    if (positionMs > 50 || p.playbackState == Player.STATE_ENDED) {
+                        p.seekTo(positionMs.toLong())
+                    }
                     // Schedule playback at the target time
                     val runnable = Runnable {
                         val actualTime = SystemClock.elapsedRealtime()

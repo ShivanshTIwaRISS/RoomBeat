@@ -204,10 +204,11 @@ export const useSocket = (roomId) => {
                 if (!isMounted) return;
                 try {
                     console.log('[Socket] playback:scheduled at server time:', data?.startAtServerEpochMs || data?.serverStartAt);
-                    const serverEpochMs = Number(data?.startAtServerEpochMs || data?.serverStartAt || Date.now() + 1500);
+                    const serverEpochMs = Number(data?.startAtServerEpochMs || data?.serverStartAt || Date.now() + 2000);
                     setPlaybackState({
                         status: 'playing',
                         serverStartAt: serverEpochMs,
+                        scheduledAtLocalMs: Date.now(),
                         currentTrackId: data?.trackId || usePlaybackStore.getState().currentTrack?.id || null,
                     });
                     setIsPlaying(true);
