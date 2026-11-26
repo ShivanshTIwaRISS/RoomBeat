@@ -159,9 +159,9 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                 const localNowMid = Math.round((tBeforeDiag + tAfterDiag) / 2);
 
                 if (ps.status === 'playing' && ps.serverStartAt) {
-                    // Don't interfere while a scheduled play is still counting down (within 1.4s)
+                    // Don't interfere while a scheduled play is still counting down (within 3s)
                     const schedLocal = usePlaybackStore.getState().playbackState?.scheduledAtLocalMs || 0;
-                    if (!diag?.isPlaying && Date.now() - schedLocal < 1400) {
+                    if (!diag?.isPlaying && Date.now() - schedLocal < 3000) {
                         return;
                     }
 
@@ -180,24 +180,24 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                         }
                     } else {
                         const compMs = syncManager.latencyCompensationMs || 0;
-                        let expectedPos = basePos + rawElapsed + compMs + 50;
+                        let expectedPos = basePos + rawElapsed + compMs;
                         if (diag?.durationMs > 0 && expectedPos >= diag.durationMs) {
                             expectedPos = expectedPos % diag.durationMs;
                         }
                         if (!diag?.isPlaying) {
                             await audioManager.prepareUrl(audioUri, isPreset ? 'demo' : trackId);
                             if (expectedPos > 150 && diag?.playbackState !== 'buffering') {
-                                await nativeAudio.seek(expectedPos + 30);
+                                await nativeAudio.seek(expectedPos + 20);
                             }
                             await nativeAudio.play();
                             lastSeekAt = Date.now();
                             usePlaybackStore.getState().setIsPlaying(true);
                             usePlaybackStore.getState().setPosition(expectedPos);
                         } else if (!useRoomStore.getState().isHost && diag?.playbackState === 'ready') {
-                            // Only speaker devices gently correct drift (>120ms, max once per 6s);
+                            // Only speaker devices gently correct drift (>60ms, max once per 5s);
                             // host plays undisturbed at 1.0x as the canonical audio reference.
                             const drift = Math.abs((diag.positionMs || 0) - expectedPos);
-                            if (drift > 120 && Date.now() - lastSeekAt > 6000) {
+                            if (drift > 60 && Date.now() - lastSeekAt > 5000) {
                                 lastSeekAt = Date.now();
                                 await nativeAudio.seek(expectedPos + 20);
                             }

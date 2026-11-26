@@ -316,10 +316,9 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
                 }
 
                 val now = SystemClock.elapsedRealtime()
-                // Compensate ~50ms for Android AudioTrack mixer startup latency
-                val rawDelayMs = (targetMonotonicMs.toLong() - 50L) - now
+                val rawDelayMs = targetMonotonicMs.toLong() - now
                 // Clamp positive delay so bad clock sync never causes a long silent wait
-                val delayMs = if (rawDelayMs > 5000L) 1500L else rawDelayMs
+                val delayMs = if (rawDelayMs > 5000L) 2000L else rawDelayMs
 
                 Log.d(TAG, "Scheduling play: position=$positionMs, targetMonotonic=$targetMonotonicMs, rawDelay=${rawDelayMs}ms, delay=${delayMs}ms")
 

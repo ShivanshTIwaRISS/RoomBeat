@@ -72,9 +72,9 @@ export const usePlayback = () => {
             socket.emit('host:playback:play', {
                 roomId: currentRoom.id,
                 positionMs: pos,
-                delayMs: 900,
+                delayMs: 2000,
             });
-            // Safety fallback: if playback:scheduled didn't start native ExoPlayer within 1.8s, play locally
+            // Safety fallback: if playback:scheduled didn't start native ExoPlayer within 3.2s, play locally
             setTimeout(async () => {
                 try {
                     if (!usePlaybackStore.getState().isPlaying) return;
@@ -84,7 +84,7 @@ export const usePlayback = () => {
                         await nativeAudio.play();
                     }
                 } catch (e) {}
-            }, 1800);
+            }, 3200);
         }
         else {
             // Fallback: play locally right away AND notify backend via REST
@@ -94,7 +94,7 @@ export const usePlayback = () => {
             } catch (e) {
                 console.warn('[usePlayback] local play fallback error:', e);
             }
-            playbackApi.play(currentRoom.id, pos, 900).catch(console.warn);
+            playbackApi.play(currentRoom.id, pos, 2000).catch(console.warn);
         }
     };
 
@@ -102,15 +102,18 @@ export const usePlayback = () => {
         if (!currentRoom)
             return;
         usePlaybackStore.getState().setIsPlaying(false);
-        // Pause locally immediately so host stops with zero network lag
-        try {
-            await nativeAudio.pause();
-        } catch (e) {}
         const socket = socketService.getSocket();
         if (socket && socket.connected) {
-            socket.emit('host:playback:pause', { roomId: currentRoom.id });
+            // Emit pause to server first; the host will pause via the echoed playback:pause event
+            // just like all other speakers — this keeps everyone perfectly aligned at the same position
+            socket.emit('host:playback:pause', {
+                roomId: currentRoom.id,
+                sentAtClientMs: Date.now(),
+            });
         }
         else {
+            // No socket — pause locally right away as a fallback
+            try { await nativeAudio.pause(); } catch (e) {}
             playbackApi.pause(currentRoom.id).catch(console.warn);
         }
     };
