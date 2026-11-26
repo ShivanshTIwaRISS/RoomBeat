@@ -103,7 +103,7 @@ export const useSocket = (roomId) => {
                     if (ps && ps.currentTrackId) {
                         const baseUrl = await getActiveBaseUrl();
                         const audioUri = `${baseUrl}/tracks/${ps.currentTrackId}/audio`;
-                        await nativeAudio.prepareIfNeeded(audioUri);
+                        await audioManager.prepareUrl(audioUri, ps.currentTrackId);
                         setIsPrepared(true);
                         if (ps.status === 'playing' && ps.serverStartAt) {
                             const serverEpochMs = Number(ps.serverStartAt);
@@ -131,7 +131,7 @@ export const useSocket = (roomId) => {
                     const baseUrl = await getActiveBaseUrl();
                     const serverRoot = baseUrl.replace('/api/v1', '');
                     const audioUri = `${serverRoot}/demo.wav`;
-                    await nativeAudio.prepare(audioUri);
+                    await audioManager.prepareUrl(audioUri, 'demo');
                     setIsPrepared(true);
                     setCurrentTrack({
                         id: data.presetId || 'preset-demo',
@@ -184,7 +184,7 @@ export const useSocket = (roomId) => {
                             ? `${baseUrl}/tracks/${data.trackId}/audio`
                             : `${serverRoot}/demo.wav`;
 
-                    await nativeAudio.prepare(audioUri);
+                    await audioManager.prepareUrl(audioUri, data?.trackId || 'demo');
                     setIsPrepared(true);
 
                     if (data?.title) {

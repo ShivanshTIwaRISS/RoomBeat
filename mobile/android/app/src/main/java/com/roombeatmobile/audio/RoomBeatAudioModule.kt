@@ -132,7 +132,7 @@ class RoomBeatAudioModule(reactContext: ReactApplicationContext) :
             .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .build()
         val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(1500, 10000, 100, 250)
+            .setBufferDurationsMs(1500, 10000, 50, 50)
             .build()
         player = ExoPlayer.Builder(context)
             .setLoadControl(loadControl)

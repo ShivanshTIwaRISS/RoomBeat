@@ -82,7 +82,7 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                 try {
                     const baseUrl = await getActiveBaseUrl();
                     const serverRoot = baseUrl.replace('/api/v1', '');
-                    await nativeAudio.prepare(`${serverRoot}/demo.wav`);
+                    await audioManager.prepareUrl(`${serverRoot}/demo.wav`, 'demo');
                     setIsPrepared(true);
                 } catch (e) { }
             }
@@ -97,7 +97,7 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
             try {
                 const baseUrl = await getActiveBaseUrl();
                 const serverRoot = baseUrl.replace('/api/v1', '');
-                await nativeAudio.prepare(`${serverRoot}/demo.wav`);
+                await audioManager.prepareUrl(`${serverRoot}/demo.wav`, 'demo');
                 setIsPrepared(true);
             } catch (e) { }
         });
@@ -194,12 +194,12 @@ export const RoomDashboardScreen = ({ navigation, route, }) => {
                             usePlaybackStore.getState().setIsPlaying(true);
                             usePlaybackStore.getState().setPosition(expectedPos);
                         } else if (!useRoomStore.getState().isHost && diag?.playbackState === 'ready') {
-                            // Only speaker devices gently correct drift (>60ms, max once per 5s);
-                            // host plays undisturbed at 1.0x as the canonical audio reference.
+                            // Only speaker devices gently correct large drift (>150ms, max once per 5s);
+                            // avoid constant micro-seeks that cause ExoPlayer rebuffer stalls.
                             const drift = Math.abs((diag.positionMs || 0) - expectedPos);
-                            if (drift > 60 && Date.now() - lastSeekAt > 5000) {
+                            if (drift > 150 && Date.now() - lastSeekAt > 5000) {
                                 lastSeekAt = Date.now();
-                                await nativeAudio.seek(expectedPos + 20);
+                                await nativeAudio.seek(expectedPos + 60);
                             }
                         }
                     }
